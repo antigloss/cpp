@@ -347,7 +347,7 @@ public:
 	 *  element in the %linked_set.  Iteration is done in ascending order according
 	 *  to the keys.
 	 */
-	iterator cbegin() const noexcept
+	const_iterator cbegin() const noexcept
 	{
 		return _M_t.begin();
 	}
@@ -357,7 +357,7 @@ public:
 	 *  element in the %linked_set.  Iteration is done in ascending order according
 	 *  to the keys.
 	 */
-	iterator cend() const noexcept
+	const_iterator cend() const noexcept
 	{
 		return _M_t.end();
 	}
@@ -367,7 +367,7 @@ public:
 	 *  element in the %linked_set.  Iteration is done in descending order according
 	 *  to the keys.
 	 */
-	reverse_iterator crbegin() const noexcept
+	const_reverse_iterator crbegin() const noexcept
 	{
 		return _M_t.rbegin();
 	}
@@ -377,7 +377,7 @@ public:
 	 *  last pair in the %linked_set.  Iteration is done in descending order
 	 *  according to the keys.
 	 */
-	reverse_iterator crend() const noexcept
+	const_reverse_iterator crend() const noexcept
 	{
 		return _M_t.rend();
 	}
@@ -426,7 +426,7 @@ public:
 	 *  Returns a read-only (constant) link_iterator that points to the first element
 	 *  inserted into the %linked_set. Iteration is done in insertion order.
 	 */
-	link_iterator link_cbegin() const noexcept
+	const_link_iterator link_cbegin() const noexcept
 	{
 		return _M_t.link_begin();
 	}
@@ -435,7 +435,7 @@ public:
 	 *  Returns a read-only (constant) link_iterator that points one past the last
 	 *  element inserted into the %linked_set. Iteration is done in insertion order.
 	 */
-	link_iterator link_cend() const noexcept
+	const_link_iterator link_cend() const noexcept
 	{
 		return _M_t.link_end();
 	}
@@ -445,7 +445,7 @@ public:
 	 *  element in the %linked_set.  Iteration is done in descending order according
 	 *  to the keys.
 	 */
-	reverse_link_iterator link_crbegin() const noexcept
+	const_reverse_link_iterator link_crbegin() const noexcept
 	{
 		return _M_t.link_rbegin();
 	}
@@ -455,7 +455,7 @@ public:
 	 *  the first element inserted into the %linked_set.
 	 *  Iteration is done in insertion order.
 	 */
-	reverse_link_iterator link_crend() const noexcept
+	const_reverse_link_iterator link_crend() const noexcept
 	{
 		return _M_t.link_rend();
 	}

@@ -161,8 +161,8 @@ struct _Rb_tree_node: public _Rb_tree_node_base {
 
 #if __cplusplus >= 201103L
 	template<typename ... _Args>
-	_Rb_tree_node(_Args&&... __args) :
-			_Rb_tree_node_base(), _M_value_field(std::forward<_Args>(__args)...)
+	_Rb_tree_node(_Args&&... __args)
+		: _Rb_tree_node_base(), _M_value_field(std::forward<_Args>(__args)...)
 	{
 	}
 #endif
@@ -521,14 +521,12 @@ public:
 	typedef ptrdiff_t difference_type;
 	typedef _Alloc allocator_type;
 
-	_Node_allocator&
-	_M_get_Node_allocator() _LIBANT_NOEXCEPT
+	_Node_allocator& _M_get_Node_allocator() _LIBANT_NOEXCEPT
 	{
 		return *static_cast<_Node_allocator*>(&this->_M_impl);
 	}
 
-	const _Node_allocator&
-	_M_get_Node_allocator() const _LIBANT_NOEXCEPT
+	const _Node_allocator& _M_get_Node_allocator() const _LIBANT_NOEXCEPT
 	{
 		return *static_cast<const _Node_allocator*>(&this->_M_impl);
 	}
@@ -550,8 +548,7 @@ protected:
 	}
 
 #if __cplusplus < 201103L
-	_Link_type
-	_M_create_node(const value_type& __x)
+	_Link_type _M_create_node(const value_type& __x)
 	{
 		_Link_type __tmp = _M_get_node();
 		__try
@@ -565,8 +562,7 @@ protected:
 		return __tmp;
 	}
 
-	void
-	_M_destroy_node(_Link_type __p)
+	void _M_destroy_node(_Link_type __p)
 	{
 		get_allocator().destroy(std::__addressof(__p->_M_value_field));
 		_M_put_node(__p);
@@ -666,8 +662,7 @@ protected:
 	_Rb_tree_impl<_Compare> _M_impl;
 
 protected:
-	_Base_ptr&
-	_M_root()
+	_Base_ptr& _M_root()
 	{
 		return this->_M_impl._M_header._M_parent;
 	}
@@ -677,8 +672,7 @@ protected:
 		return this->_M_impl._M_header._M_parent;
 	}
 
-	_Base_ptr&
-	_M_leftmost()
+	_Base_ptr& _M_leftmost()
 	{
 		return this->_M_impl._M_header._M_left;
 	}
@@ -688,8 +682,7 @@ protected:
 		return this->_M_impl._M_header._M_left;
 	}
 
-	_Base_ptr&
-	_M_rightmost()
+	_Base_ptr& _M_rightmost()
 	{
 		return this->_M_impl._M_header._M_right;
 	}
@@ -873,8 +866,7 @@ public:
 		_M_erase(_M_begin());
 	}
 
-	_Rb_tree&
-	operator=(const _Rb_tree& __x);
+	_Rb_tree& operator=(const _Rb_tree& __x);
 
 	// Accessors.
 	_Compare key_comp() const
@@ -1219,6 +1211,8 @@ _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_Rb_tree(_Rb_tree<_Key, _Va
 		_M_leftmost() = __x._M_leftmost();
 		_M_rightmost() = __x._M_rightmost();
 		_M_root()->_M_parent = _M_end();
+		__x._M_impl._M_header._M_prev->_M_next = &(_M_impl._M_header);
+		__x._M_impl._M_header._M_next->_M_prev = &(_M_impl._M_header);
 		_M_impl._M_header._M_prev = __x._M_impl._M_header._M_prev;
 		_M_impl._M_header._M_next = __x._M_impl._M_header._M_next;
 		_M_impl._M_node_count = __x._M_impl._M_node_count;
