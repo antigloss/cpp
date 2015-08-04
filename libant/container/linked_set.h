@@ -82,9 +82,6 @@ namespace ant {
  *
  *  Sets support bidirectional iterators.
  *
- *  The private tree data is declared exactly the same way for set and
- *  multiset; the distinction is made entirely in how the tree functions are
- *  called (*_unique versus *_equal, same as the standard).
  */
 template<typename _Key, typename _Compare = std::less<_Key>,
 			typename _Alloc = std::allocator<_Key> >
@@ -120,7 +117,7 @@ private:
 	typedef typename _Alloc::template rebind<_Key>::other _Key_alloc_type;
 	typedef _Rb_tree<key_type, value_type, _Identity<value_type>, key_compare, _Key_alloc_type> _Rep_type;
 
-	_Rep_type _M_t;  // Red-black tree representing set.
+	_Rep_type _M_t;  // Red-black tree representing linked_set.
 
 public:
 	//@{
@@ -129,8 +126,6 @@ public:
 	typedef typename _Key_alloc_type::const_pointer const_pointer;
 	typedef typename _Key_alloc_type::reference reference;
 	typedef typename _Key_alloc_type::const_reference const_reference;
-	// DR 103. set::iterator is required to be modifiable,
-	// but this allows modification of keys.
 	typedef typename _Rep_type::const_iterator iterator;
 	typedef typename _Rep_type::const_iterator const_iterator;
 	typedef typename _Rep_type::const_reverse_iterator reverse_iterator;
@@ -738,22 +733,22 @@ public:
 		_M_t.clear();
 	}
 
-	// set operations:
+	// linked_set operations:
 
 	/**
 	 *  @brief  Finds the number of elements.
 	 *  @param  __x  Element to located.
 	 *  @return  Number of elements with specified key.
 	 *
-	 *  This function only makes sense for multisets; for set the result will
-	 *  either be 0 (not present) or 1 (present).
+	 *  This function only makes sense for linked_multisets;
+	 *  for linked_set the result will either be 0
+	 *  (not present) or 1 (present).
 	 */
 	size_type count(const key_type& __x) const
 	{
 		return _M_t.find(__x) == _M_t.end() ? 0 : 1;
 	}
 
-	// 214.  set::find() missing const overload
 	//@{
 	/**
 	 *  @brief Tries to locate an element in a %linked_set.
@@ -832,7 +827,7 @@ public:
 	 *  @endcode
 	 *  (but is faster than making the calls separately).
 	 *
-	 *  This function probably only makes sense for multisets.
+	 *  This function probably only makes sense for linked_multisets.
 	 */
 	std::pair<iterator, iterator> equal_range(const key_type& __x)
 	{
@@ -853,13 +848,13 @@ public:
 };
 
 /**
- *  @brief  Set equality comparison.
+ *  @brief  linked_set equality comparison.
  *  @param  __x  A %linked_set.
  *  @param  __y  A %linked_set of the same type as @a x.
- *  @return  True iff the size and elements of the sets are equal.
+ *  @return  True if the size and elements of the linked_sets are equal.
  *
- *  This is an equivalence relation.  It is linear in the size of the sets.
- *  Sets are considered equivalent if their sizes are equal, and if
+ *  This is an equivalence relation.  It is linear in the size of the linked_sets.
+ *  linked_sets are considered equivalent if their sizes are equal, and if
  *  corresponding elements compare equal.
  */
 template<typename _Key, typename _Compare, typename _Alloc>
@@ -919,7 +914,7 @@ inline bool operator>=(const linked_set<_Key, _Compare, _Alloc>& __x,
 	return !(__x < __y);
 }
 
-/// See std::set::swap().
+/// See ant::linked_set::swap().
 template<typename _Key, typename _Compare, typename _Alloc>
 inline void swap(linked_set<_Key, _Compare, _Alloc>& __x,
 					linked_set<_Key, _Compare, _Alloc>& __y)

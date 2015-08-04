@@ -52,7 +52,7 @@
 
 /** @file container/internal/stl_tree.h
  *  This is an internal header file, included by other library headers.
- *  Do not attempt to use it directly. @headername{map,set}
+ *  Do not attempt to use it directly. @headername{container/linked_set.h}
  */
 
 #ifndef LIBANT_CONTAINER_INTERNAL_STL_TREE_H_
@@ -76,11 +76,12 @@
 #endif
 
 namespace ant {
+
 // Red-black tree class, designed for use in implementing STL
-// associative containers (set, multiset, map, and multimap). The
-// insertion and deletion algorithms are based on those in Cormen,
-// Leiserson, and Rivest, Introduction to Algorithms (MIT Press,
-// 1990), except that
+// associative containers (linked_set, linked_multiset, linked_map,
+// and linked_multimap). The insertion and deletion algorithms are
+// based on those in Cormen, Leiserson, and Rivest, Introduction to
+// Algorithms (MIT Press, 1990), except that
 //
 // (1) the header cell is maintained with links not only to the root
 // but also to the leftmost node of the tree, to enable constant
@@ -979,8 +980,7 @@ public:
 		return _M_get_Node_allocator().max_size();
 	}
 
-	void
-	swap(_Rb_tree& __t);
+	void swap(_Rb_tree& __t);
 
 	// Insert/erase.
 #if __cplusplus >= 201103L
@@ -1437,10 +1437,8 @@ std::pair<
 	        const_iterator(__y));
 }
 
-template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare,
-        typename _Alloc>
-void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::swap(
-        _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __t)
+template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare, typename _Alloc>
+void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::swap(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __t)
 {
 	if (_M_root() == 0) {
 		if (__t._M_root() != 0) {
@@ -1448,35 +1446,49 @@ void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::swap(
 			_M_leftmost() = __t._M_leftmost();
 			_M_rightmost() = __t._M_rightmost();
 			_M_root()->_M_parent = _M_end();
+			__t._M_impl._M_header._M_prev->_M_next = &(_M_impl._M_header);
+			__t._M_impl._M_header._M_next->_M_prev = &(_M_impl._M_header);
+			_M_impl._M_header._M_prev = __t._M_impl._M_header._M_prev;
+			_M_impl._M_header._M_next = __t._M_impl._M_header._M_next;
 
 			__t._M_root() = 0;
 			__t._M_leftmost() = __t._M_end();
 			__t._M_rightmost() = __t._M_end();
+			__t._M_impl._M_init_list_head();
 		}
 	} else if (__t._M_root() == 0) {
 		__t._M_root() = _M_root();
 		__t._M_leftmost() = _M_leftmost();
 		__t._M_rightmost() = _M_rightmost();
 		__t._M_root()->_M_parent = __t._M_end();
+		_M_impl._M_header._M_prev->_M_next = &(__t._M_impl._M_header);
+		_M_impl._M_header._M_next->_M_prev = &(__t._M_impl._M_header);
+		__t._M_impl._M_header._M_prev = _M_impl._M_header._M_prev;
+		__t._M_impl._M_header._M_next = _M_impl._M_header._M_next;
 
 		_M_root() = 0;
 		_M_leftmost() = _M_end();
 		_M_rightmost() = _M_end();
+		_M_impl._M_init_list_head();
 	} else {
 		std::swap(_M_root(), __t._M_root());
 		std::swap(_M_leftmost(), __t._M_leftmost());
 		std::swap(_M_rightmost(), __t._M_rightmost());
+		std::swap(_M_impl._M_header._M_prev->_M_next, __t._M_impl._M_header._M_prev->_M_next);
+		std::swap(_M_impl._M_header._M_next->_M_prev, __t._M_impl._M_header._M_next->_M_prev);
+		std::swap(_M_impl._M_header._M_prev, __t._M_impl._M_header._M_prev);
+		std::swap(_M_impl._M_header._M_next, __t._M_impl._M_header._M_next);
 
 		_M_root()->_M_parent = _M_end();
 		__t._M_root()->_M_parent = __t._M_end();
 	}
 	// No need to swap header's color as it does not change.
-	std::swap(this->_M_impl._M_node_count, __t._M_impl._M_node_count);
-	std::swap(this->_M_impl._M_key_compare, __t._M_impl._M_key_compare);
+	std::swap(_M_impl._M_node_count, __t._M_impl._M_node_count);
+	std::swap(_M_impl._M_key_compare, __t._M_impl._M_key_compare);
 
 	// 431. Swapping containers with unequal allocators.
 	std::__alloc_swap<_Node_allocator>::_S_do_it(_M_get_Node_allocator(),
-	        __t._M_get_Node_allocator());
+													__t._M_get_Node_allocator());
 }
 
 template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare,
