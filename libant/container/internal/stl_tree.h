@@ -943,6 +943,46 @@ public:
 		return const_reverse_iterator(begin());
 	}
 
+	insert_order_iterator link_begin() _LIBANT_NOEXCEPT
+	{
+		return insert_order_iterator(static_cast<_Link_type>(this->_M_impl._M_header._M_next));
+	}
+
+	const_insert_order_iterator link_begin() const _LIBANT_NOEXCEPT
+	{
+		return const_insert_order_iterator(static_cast<_Const_Link_type>(this->_M_impl._M_header._M_next));
+	}
+
+	insert_order_iterator link_end() _LIBANT_NOEXCEPT
+	{
+		return insert_order_iterator(static_cast<_Link_type>(&this->_M_impl._M_header));
+	}
+
+	const_insert_order_iterator link_end() const _LIBANT_NOEXCEPT
+	{
+		return const_insert_order_iterator(static_cast<_Const_Link_type>(&this->_M_impl._M_header));
+	}
+
+	reverse_insert_order_iterator link_rbegin() _LIBANT_NOEXCEPT
+	{
+		return reverse_insert_order_iterator(link_end());
+	}
+
+	const_reverse_insert_order_iterator link_rbegin() const _LIBANT_NOEXCEPT
+	{
+		return const_reverse_insert_order_iterator(link_end());
+	}
+
+	reverse_insert_order_iterator link_rend() _LIBANT_NOEXCEPT
+	{
+		return reverse_insert_order_iterator(link_begin());
+	}
+
+	const_reverse_insert_order_iterator link_rend() const _LIBANT_NOEXCEPT
+	{
+		return const_reverse_insert_order_iterator(link_begin());
+	}
+
 	bool empty() const _LIBANT_NOEXCEPT
 	{
 		return _M_impl._M_node_count == 0;
