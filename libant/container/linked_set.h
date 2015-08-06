@@ -48,8 +48,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file container/linked_set.h
- *  linked_set implementation.
+/**
+ * @file container/linked_set.h
+ * @brief linked_set implementation.
  */
 
 #ifndef LIBANT_CONTAINER_LINKED_SET_H_
