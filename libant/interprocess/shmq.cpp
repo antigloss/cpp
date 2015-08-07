@@ -16,6 +16,8 @@
 
 using namespace std;
 
+namespace ant {
+
 bool shm_circular_queue::create(const string& name, uint32_t cq_size, uint32_t data_max_sz)
 {
 	assert((cq_size < k_shm_cq_max_sz)
@@ -193,3 +195,5 @@ bool shm_circular_queue::align_tail(uint32_t len)
 
 	return false;
 }
+
+} // namespace ant

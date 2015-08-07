@@ -55,6 +55,8 @@
 #include <unistd.h>
 #endif
 
+namespace ant {
+
 /**
  * @brief A lock-free shared memory circular queue dedicated to work well
  * 			with only one producer and one consumer, no matter they are
@@ -257,5 +259,7 @@ private:
 	HANDLE	mapfile_;
 #endif
 };
+
+}
 
 #endif // LIBANT_INTERPROCESS_SHMQ_H_
