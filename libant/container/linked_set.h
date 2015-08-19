@@ -651,6 +651,11 @@ public:
 	{
 		return _M_t.erase(__position);
 	}
+
+	link_iterator erase(const_link_iterator __position)
+	{
+		return _M_t.erase(__position);
+	}
 #else
 	/**
 	 *  @brief Erases an element from a %linked_set.
@@ -663,6 +668,11 @@ public:
 	 *  responsibility.
 	 */
 	void erase(iterator __position)
+	{
+		_M_t.erase(__position);
+	}
+
+	void erase(link_iterator __position)
 	{
 		_M_t.erase(__position);
 	}
@@ -704,6 +714,11 @@ public:
 	{
 		return _M_t.erase(__first, __last);
 	}
+
+	link_iterator erase(const_link_iterator __first, const_link_iterator __last)
+	{
+		return _M_t.erase(__first, __last);
+	}
 #else
 	/**
 	 *  @brief Erases a [first,last) range of elements from a %linked_set.
@@ -718,6 +733,11 @@ public:
 	 *  in any way.  Managing the pointer is the user's responsibility.
 	 */
 	void erase(iterator __first, iterator __last)
+	{
+		_M_t.erase(__first, __last);
+	}
+
+	void erase(link_iterator __first, link_iterator __last)
 	{
 		_M_t.erase(__first, __last);
 	}
