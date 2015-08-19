@@ -1030,11 +1030,10 @@ public:
 	_M_insert_equal(_InputIterator __first, _InputIterator __last);
 
 private:
-	void
-	_M_erase_aux(const_iterator __position);
-
-	void
-	_M_erase_aux(const_iterator __first, const_iterator __last);
+	void _M_erase_aux(const_iterator __position);
+	void _M_erase_aux(const_iterator __first, const_iterator __last);
+	void _M_erase_aux(const_insert_order_iterator __position);
+	void _M_erase_aux(const_insert_order_iterator __first, const_insert_order_iterator __last);
 
 public:
 #if __cplusplus >= 201103L
@@ -1055,17 +1054,46 @@ public:
 		_M_erase_aux(__position);
 		return __result;
 	}
-#else
-	void
-	erase(iterator __position)
-	{	_M_erase_aux(__position);}
 
-	void
-	erase(const_iterator __position)
-	{	_M_erase_aux(__position);}
+	// DR 130. Associative erase should return an iterator.
+	insert_order_iterator erase(const_insert_order_iterator __position)
+	{
+		const_insert_order_iterator __result = __position;
+		++__result;
+		_M_erase_aux(__position);
+		return __result._M_const_cast();
+	}
+
+	// LWG 2059.
+	insert_order_iterator erase(insert_order_iterator __position)
+	{
+		insert_order_iterator __result = __position;
+		++__result;
+		_M_erase_aux(__position);
+		return __result;
+	}
+#else
+	void erase(iterator __position)
+	{
+		_M_erase_aux(__position);
+	}
+
+	void erase(const_iterator __position)
+	{
+		_M_erase_aux(__position);
+	}
+
+	void erase(insert_order_iterator __position)
+	{
+		_M_erase_aux(__position);
+	}
+
+	void erase(const_insert_order_iterator __position)
+	{
+		_M_erase_aux(__position);
+	}
 #endif
-	size_type
-	erase(const key_type& __x);
+	size_type erase(const key_type& __x);
 
 #if __cplusplus >= 201103L
 	// DR 130. Associative erase should return an iterator.
@@ -1074,17 +1102,34 @@ public:
 		_M_erase_aux(__first, __last);
 		return __last._M_const_cast();
 	}
-#else
-	void
-	erase(iterator __first, iterator __last)
-	{	_M_erase_aux(__first, __last);}
 
-	void
-	erase(const_iterator __first, const_iterator __last)
-	{	_M_erase_aux(__first, __last);}
+	insert_order_iterator erase(const_insert_order_iterator __first, const_insert_order_iterator __last)
+	{
+		_M_erase_aux(__first, __last);
+		return __last._M_const_cast();
+	}
+#else
+	void erase(iterator __first, iterator __last)
+	{
+		_M_erase_aux(__first, __last);
+	}
+
+	void erase(const_iterator __first, const_iterator __last)
+	{
+		_M_erase_aux(__first, __last);
+	}
+
+	void erase(insert_order_iterator __first, insert_order_iterator __last)
+	{
+		_M_erase_aux(__first, __last);
+	}
+
+	void erase(const_insert_order_iterator __first, const_insert_order_iterator __last)
+	{
+		_M_erase_aux(__first, __last);
+	}
 #endif
-	void
-	erase(const key_type* __first, const key_type* __last);
+	void erase(const key_type* __first, const key_type* __last);
 
 	void clear() _LIBANT_NOEXCEPT
 	{
@@ -1874,27 +1919,45 @@ void _Rb_tree<_Key, _Val, _KoV, _Cmp, _Alloc>::_M_insert_equal(_II __first,
 		_M_insert_equal_(end(), *__first);
 }
 
-template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare,
-        typename _Alloc>
-void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_erase_aux(
-        const_iterator __position)
+template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare, typename _Alloc>
+void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_erase_aux(const_iterator __position)
 {
-	_Link_type __y = static_cast<_Link_type>(_Rb_tree_rebalance_for_erase(
-	        const_cast<_Base_ptr>(__position._M_node), this->_M_impl._M_header));
+	_Link_type __y = static_cast<_Link_type>(_Rb_tree_rebalance_for_erase(const_cast<_Base_ptr>(__position._M_node), this->_M_impl._M_header));
 	_M_impl._M_node_removed(__y);
 	_M_destroy_node(__y);
 }
 
-template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare,
-        typename _Alloc>
-void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_erase_aux(
-        const_iterator __first, const_iterator __last)
+template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare, typename _Alloc>
+void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_erase_aux(const_iterator __first, const_iterator __last)
 {
-	if (__first == begin() && __last == end())
+	if (__first == begin() && __last == end()) {
 		clear();
-	else
-		while (__first != __last)
+	} else {
+		while (__first != __last) {
 			erase(__first++);
+		}
+	}
+}
+
+template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare, typename _Alloc>
+void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_erase_aux(const_insert_order_iterator __position)
+{
+	_Link_type __y = static_cast<_Link_type>(_Rb_tree_rebalance_for_erase(const_cast<_Base_ptr>(__position._M_node), this->_M_impl._M_header));
+	_M_impl._M_node_removed(__y);
+	_M_destroy_node(__y);
+}
+
+template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare, typename _Alloc>
+void _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::_M_erase_aux(const_insert_order_iterator __first,
+																		const_insert_order_iterator __last)
+{
+	if (__first == link_begin() && __last == link_end()) {
+		clear();
+	} else {
+		while (__first != __last) {
+			erase(__first++);
+		}
+	}
 }
 
 template<typename _Key, typename _Val, typename _KeyOfValue, typename _Compare,

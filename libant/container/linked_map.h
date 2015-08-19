@@ -82,14 +82,11 @@ namespace ant {
  *  Meets the requirements of a <a href="tables.html#65">container</a>, a
  *  <a href="tables.html#66">reversible container</a>, and an
  *  <a href="tables.html#69">associative container</a> (using unique keys).
- *  For a @c map<Key,T> the key_type is Key, the mapped_type is T, and the
+ *  For a @c linked_map<Key,T> the key_type is Key, the mapped_type is T, and the
  *  value_type is std::pair<const Key,T>.
  *
- *  Maps support bidirectional iterators.
+ *  linked_map support bidirectional iterators.
  *
- *  The private tree data is declared exactly the same way for map and
- *  multimap; the distinction is made entirely in how the tree functions are
- *  called (*_unique versus *_equal, same as the standard).
  */
 template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
         typename _Alloc = std::allocator<std::pair<const _Key, _Tp> > >
@@ -156,7 +153,7 @@ public:
 	};
 
 private:
-	/// This turns a red-black tree into a [multi]map.
+	/// This turns a red-black tree into a linked_map.
 	typedef typename _Alloc::template rebind<value_type>::other _Pair_alloc_type;
 
 	typedef _Rb_tree<key_type, value_type, _Select1st<value_type>, key_compare,
@@ -178,9 +175,9 @@ public:
 	typedef typename _Rep_type::difference_type difference_type;
 	typedef typename _Rep_type::reverse_iterator reverse_iterator;
 	typedef typename _Rep_type::const_reverse_iterator const_reverse_iterator;
-	typedef typename _Rep_type::const_insert_order_iterator link_iterator;
+	typedef typename _Rep_type::insert_order_iterator link_iterator;
 	typedef typename _Rep_type::const_insert_order_iterator const_link_iterator;
-	typedef typename _Rep_type::const_reverse_insert_order_iterator reverse_link_iterator;
+	typedef typename _Rep_type::reverse_insert_order_iterator reverse_link_iterator;
 	typedef typename _Rep_type::const_reverse_insert_order_iterator const_reverse_link_iterator;
 
 	// [23.3.1.1] construct/copy/destroy
@@ -195,7 +192,7 @@ public:
 	}
 
 	/**
-	 *  @brief  Creates a %map with no elements.
+	 *  @brief  Creates a %linked_map with no elements.
 	 *  @param  __comp  A comparison object.
 	 *  @param  __a  An allocator object.
 	 */
@@ -207,9 +204,9 @@ public:
 
 	/**
 	 *  @brief  %Map copy constructor.
-	 *  @param  __x  A %map of identical element and allocator types.
+	 *  @param  __x  A %linked_map of identical element and allocator types.
 	 *
-	 *  The newly-created %map uses a copy of the allocation object
+	 *  The newly-created %linked_map uses a copy of the allocation object
 	 *  used by @a __x.
 	 */
 	linked_map(const linked_map& __x) :
@@ -220,10 +217,10 @@ public:
 #if __cplusplus >= 201103L
 	/**
 	 *  @brief  %Map move constructor.
-	 *  @param  __x  A %map of identical element and allocator types.
+	 *  @param  __x  A %linked_map of identical element and allocator types.
 	 *
-	 *  The newly-created %map contains the exact contents of @a __x.
-	 *  The contents of @a __x are a valid, but unspecified %map.
+	 *  The newly-created %linked_map contains the exact contents of @a __x.
+	 *  The contents of @a __x are a valid, but unspecified %linked_map.
 	 */
 	linked_map(linked_map&& __x)
 	noexcept(std::is_nothrow_copy_constructible<_Compare>::value) :
@@ -232,12 +229,12 @@ public:
 	}
 
 	/**
-	 *  @brief  Builds a %map from an initializer_list.
+	 *  @brief  Builds a %linked_map from an initializer_list.
 	 *  @param  __l  An initializer_list.
 	 *  @param  __comp  A comparison object.
 	 *  @param  __a  An allocator object.
 	 *
-	 *  Create a %map consisting of copies of the elements in the
+	 *  Create a %linked_map consisting of copies of the elements in the
 	 *  initializer_list @a __l.
 	 *  This is linear in N if the range is already sorted, and NlogN
 	 *  otherwise (where N is @a __l.size()).
@@ -251,11 +248,11 @@ public:
 #endif
 
 	/**
-	 *  @brief  Builds a %map from a range.
+	 *  @brief  Builds a %linked_map from a range.
 	 *  @param  __first  An input iterator.
 	 *  @param  __last  An input iterator.
 	 *
-	 *  Create a %map consisting of copies of the elements from
+	 *  Create a %linked_map consisting of copies of the elements from
 	 *  [__first,__last).  This is linear in N if the range is
 	 *  already sorted, and NlogN otherwise (where N is
 	 *  distance(__first,__last)).
@@ -268,13 +265,13 @@ public:
 	}
 
 	/**
-	 *  @brief  Builds a %map from a range.
+	 *  @brief  Builds a %linked_map from a range.
 	 *  @param  __first  An input iterator.
 	 *  @param  __last  An input iterator.
 	 *  @param  __comp  A comparison functor.
 	 *  @param  __a  An allocator object.
 	 *
-	 *  Create a %map consisting of copies of the elements from
+	 *  Create a %linked_map consisting of copies of the elements from
 	 *  [__first,__last).  This is linear in N if the range is
 	 *  already sorted, and NlogN otherwise (where N is
 	 *  distance(__first,__last)).
@@ -299,7 +296,7 @@ public:
 
 	/**
 	 *  @brief  %Map assignment operator.
-	 *  @param  __x  A %map of identical element and allocator types.
+	 *  @param  __x  A %linked_map of identical element and allocator types.
 	 *
 	 *  All the elements of @a __x are copied, but unlike the copy
 	 *  constructor, the allocator object is not copied.
@@ -314,10 +311,10 @@ public:
 #if __cplusplus >= 201103L
 	/**
 	 *  @brief  %Map move assignment operator.
-	 *  @param  __x  A %map of identical element and allocator types.
+	 *  @param  __x  A %linked_map of identical element and allocator types.
 	 *
 	 *  The contents of @a __x are moved into this map (without copying).
-	 *  @a __x is a valid, but unspecified %map.
+	 *  @a __x is a valid, but unspecified %linked_map.
 	 */
 	linked_map&
 	operator=(linked_map&& __x)
@@ -333,11 +330,11 @@ public:
 	 *  @brief  %Map list assignment operator.
 	 *  @param  __l  An initializer_list.
 	 *
-	 *  This function fills a %map with copies of the elements in the
+	 *  This function fills a %linked_map with copies of the elements in the
 	 *  initializer list @a __l.
 	 *
-	 *  Note that the assignment completely changes the %map and
-	 *  that the resulting %map's size is the same as the number
+	 *  Note that the assignment completely changes the %linked_map and
+	 *  that the resulting %linked_map's size is the same as the number
 	 *  of elements assigned.  Old data may be lost.
 	 */
 	linked_map&
@@ -358,7 +355,7 @@ public:
 	// iterators
 	/**
 	 *  Returns a read/write iterator that points to the first pair in the
-	 *  %map.
+	 *  %linked_map.
 	 *  Iteration is done in ascending order according to the keys.
 	 */
 	iterator begin() _LIBANT_NOEXCEPT
@@ -368,7 +365,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) iterator that points to the first pair
-	 *  in the %map.  Iteration is done in ascending order according to the
+	 *  in the %linked_map.  Iteration is done in ascending order according to the
 	 *  keys.
 	 */
 	const_iterator begin() const _LIBANT_NOEXCEPT
@@ -378,7 +375,7 @@ public:
 
 	/**
 	 *  Returns a read/write iterator that points one past the last
-	 *  pair in the %map.  Iteration is done in ascending order
+	 *  pair in the %linked_map.  Iteration is done in ascending order
 	 *  according to the keys.
 	 */
 	iterator end() _LIBANT_NOEXCEPT
@@ -388,7 +385,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) iterator that points one past the last
-	 *  pair in the %map.  Iteration is done in ascending order according to
+	 *  pair in the %linked_map.  Iteration is done in ascending order according to
 	 *  the keys.
 	 */
 	const_iterator end() const _LIBANT_NOEXCEPT
@@ -398,7 +395,7 @@ public:
 
 	/**
 	 *  Returns a read/write reverse iterator that points to the last pair in
-	 *  the %map.  Iteration is done in descending order according to the
+	 *  the %linked_map.  Iteration is done in descending order according to the
 	 *  keys.
 	 */
 	reverse_iterator rbegin() _LIBANT_NOEXCEPT
@@ -408,7 +405,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) reverse iterator that points to the
-	 *  last pair in the %map.  Iteration is done in descending order
+	 *  last pair in the %linked_map.  Iteration is done in descending order
 	 *  according to the keys.
 	 */
 	const_reverse_iterator rbegin() const _LIBANT_NOEXCEPT
@@ -418,7 +415,7 @@ public:
 
 	/**
 	 *  Returns a read/write reverse iterator that points to one before the
-	 *  first pair in the %map.  Iteration is done in descending order
+	 *  first pair in the %linked_map.  Iteration is done in descending order
 	 *  according to the keys.
 	 */
 	reverse_iterator rend() _LIBANT_NOEXCEPT
@@ -428,7 +425,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) reverse iterator that points to one
-	 *  before the first pair in the %map.  Iteration is done in descending
+	 *  before the first pair in the %linked_map.  Iteration is done in descending
 	 *  order according to the keys.
 	 */
 	const_reverse_iterator rend() const _LIBANT_NOEXCEPT
@@ -439,7 +436,7 @@ public:
 #if __cplusplus >= 201103L
 	/**
 	 *  Returns a read-only (constant) iterator that points to the first pair
-	 *  in the %map.  Iteration is done in ascending order according to the
+	 *  in the %linked_map.  Iteration is done in ascending order according to the
 	 *  keys.
 	 */
 	const_iterator cbegin() const noexcept
@@ -449,7 +446,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) iterator that points one past the last
-	 *  pair in the %map.  Iteration is done in ascending order according to
+	 *  pair in the %linked_map.  Iteration is done in ascending order according to
 	 *  the keys.
 	 */
 	const_iterator cend() const noexcept
@@ -459,7 +456,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) reverse iterator that points to the
-	 *  last pair in the %map.  Iteration is done in descending order
+	 *  last pair in the %linked_map.  Iteration is done in descending order
 	 *  according to the keys.
 	 */
 	const_reverse_iterator crbegin() const noexcept
@@ -469,7 +466,7 @@ public:
 
 	/**
 	 *  Returns a read-only (constant) reverse iterator that points to one
-	 *  before the first pair in the %map.  Iteration is done in descending
+	 *  before the first pair in the %linked_map.  Iteration is done in descending
 	 *  order according to the keys.
 	 */
 	const_reverse_iterator crend() const noexcept
@@ -482,7 +479,7 @@ public:
 	 *  Returns a read-only (constant) link_iterator that points to the first element
 	 *  inserted into the %linked_set. Iteration is done in insertion order.
 	 */
-	link_iterator link_begin() const _LIBANT_NOEXCEPT
+	link_iterator link_begin() _LIBANT_NOEXCEPT
 	{
 		return _M_t.link_begin();
 	}
@@ -491,7 +488,25 @@ public:
 	 *  Returns a read-only (constant) link_iterator that points one past the last
 	 *  element inserted into the %linked_set. Iteration is done in insertion order.
 	 */
-	link_iterator link_end() const _LIBANT_NOEXCEPT
+	link_iterator link_end() _LIBANT_NOEXCEPT
+	{
+		return _M_t.link_end();
+	}
+
+	/**
+	 *  Returns a read-only (constant) link_iterator that points to the first element
+	 *  inserted into the %linked_set. Iteration is done in insertion order.
+	 */
+	const_link_iterator link_begin() const _LIBANT_NOEXCEPT
+	{
+		return _M_t.link_begin();
+	}
+
+	/**
+	 *  Returns a read-only (constant) link_iterator that points one past the last
+	 *  element inserted into the %linked_set. Iteration is done in insertion order.
+	 */
+	const_link_iterator link_end() const _LIBANT_NOEXCEPT
 	{
 		return _M_t.link_end();
 	}
@@ -501,7 +516,7 @@ public:
 	 *  the last element inserted into the %linked_set.
 	 *  Iteration is done in reversed insertion order.
 	 */
-	reverse_link_iterator link_rbegin() const _LIBANT_NOEXCEPT
+	reverse_link_iterator link_rbegin() _LIBANT_NOEXCEPT
 	{
 		return _M_t.link_rbegin();
 	}
@@ -511,7 +526,27 @@ public:
 	 *  the first element inserted into the %linked_set.
 	 *  Iteration is done in insertion order.
 	 */
-	reverse_link_iterator link_rend() const _LIBANT_NOEXCEPT
+	reverse_link_iterator link_rend() _LIBANT_NOEXCEPT
+	{
+		return _M_t.link_rend();
+	}
+
+	/**
+	 *  Returns a read-only (constant) reverse_link_iterator that points to
+	 *  the last element inserted into the %linked_set.
+	 *  Iteration is done in reversed insertion order.
+	 */
+	const_reverse_link_iterator link_rbegin() const _LIBANT_NOEXCEPT
+	{
+		return _M_t.link_rbegin();
+	}
+
+	/**
+	 *  Returns a read-only (constant) reverse_link_iterator that points one past
+	 *  the first element inserted into the %linked_set.
+	 *  Iteration is done in insertion order.
+	 */
+	const_reverse_link_iterator link_rend() const _LIBANT_NOEXCEPT
 	{
 		return _M_t.link_rend();
 	}
@@ -557,7 +592,7 @@ public:
 #endif
 
 	// capacity
-	/** Returns true if the %map is empty.  (Thus begin() would equal
+	/** Returns true if the %linked_map is empty.  (Thus begin() would equal
 	 *  end().)
 	 */
 	bool empty() const _LIBANT_NOEXCEPT
@@ -565,13 +600,13 @@ public:
 		return _M_t.empty();
 	}
 
-	/** Returns the size of the %map.  */
+	/** Returns the size of the %linked_map.  */
 	size_type size() const _LIBANT_NOEXCEPT
 	{
 		return _M_t.size();
 	}
 
-	/** Returns the maximum size of the %map.  */
+	/** Returns the maximum size of the %linked_map.  */
 	size_type max_size() const _LIBANT_NOEXCEPT
 	{
 		return _M_t.max_size();
@@ -579,7 +614,7 @@ public:
 
 	// [23.3.1.2] element access
 	/**
-	 *  @brief  Subscript ( @c [] ) access to %map data.
+	 *  @brief  Subscript ( @c [] ) access to %linked_map data.
 	 *  @param  __k  The key for which data should be retrieved.
 	 *  @return  A reference to the data of the (key,data) %pair.
 	 *
@@ -626,17 +661,17 @@ public:
 
 	// DR 464. Suggestion for new member functions in standard containers.
 	/**
-	 *  @brief  Access to %map data.
+	 *  @brief  Access to %linked_map data.
 	 *  @param  __k  The key for which data should be retrieved.
 	 *  @return  A reference to the data whose key is equivalent to @a __k, if
-	 *           such a data is present in the %map.
+	 *           such a data is present in the %linked_map.
 	 *  @throw  std::out_of_range  If no such data is present.
 	 */
 	mapped_type& at(const key_type& __k)
 	{
 		iterator __i = lower_bound(__k);
 		if (__i == end() || key_comp()(__k, (*__i).first)) {
-			throw std::out_of_range("map::at");
+			throw std::out_of_range("linked_map::at");
 		}
 		return (*__i).second;
 	}
@@ -645,7 +680,7 @@ public:
 	{
 		const_iterator __i = lower_bound(__k);
 		if (__i == end() || key_comp()(__k, (*__i).first)) {
-			throw std::out_of_range("map::at");
+			throw std::out_of_range("linked_map::at");
 		}
 		return (*__i).second;
 	}
@@ -653,7 +688,7 @@ public:
 	// modifiers
 #if __cplusplus >= 201103L
 	/**
-	 *  @brief Attempts to build and insert a std::pair into the %map.
+	 *  @brief Attempts to build and insert a std::pair into the %linked_map.
 	 *
 	 *  @param __args  Arguments used to generate a new pair instance (see
 	 *	        std::piecewise_contruct for passing arguments to each
@@ -664,9 +699,9 @@ public:
 	 *           is true if the pair was actually inserted.
 	 *
 	 *  This function attempts to build and insert a (key, value) %pair into
-	 *  the %map.
-	 *  A %map relies on unique keys and thus a %pair is only inserted if its
-	 *  first element (the key) is not already present in the %map.
+	 *  the %linked_map.
+	 *  A %linked_map relies on unique keys and thus a %pair is only inserted if its
+	 *  first element (the key) is not already present in the %linked_map.
 	 *
 	 *  Insertion requires logarithmic time.
 	 */
@@ -677,7 +712,7 @@ public:
 	}
 
 	/**
-	 *  @brief Attempts to build and insert a std::pair into the %map.
+	 *  @brief Attempts to build and insert a std::pair into the %linked_map.
 	 *
 	 *  @param  __pos  An iterator that serves as a hint as to where the pair
 	 *                should be inserted.
@@ -710,7 +745,7 @@ public:
 #endif
 
 	/**
-	 *  @brief Attempts to insert a std::pair into the %map.
+	 *  @brief Attempts to insert a std::pair into the %linked_map.
 
 	 *  @param __x Pair to be inserted (see std::make_pair for easy
 	 *	     creation of pairs).
@@ -719,9 +754,9 @@ public:
 	 *           points to the possibly inserted pair, and the second is
 	 *           a bool that is true if the pair was actually inserted.
 	 *
-	 *  This function attempts to insert a (key, value) %pair into the %map.
-	 *  A %map relies on unique keys and thus a %pair is only inserted if its
-	 *  first element (the key) is not already present in the %map.
+	 *  This function attempts to insert a (key, value) %pair into the %linked_map.
+	 *  A %linked_map relies on unique keys and thus a %pair is only inserted if its
+	 *  first element (the key) is not already present in the %linked_map.
 	 *
 	 *  Insertion requires logarithmic time.
 	 */
@@ -741,7 +776,7 @@ public:
 
 #if __cplusplus >= 201103L
 	/**
-	 *  @brief Attempts to insert a list of std::pairs into the %map.
+	 *  @brief Attempts to insert a list of std::pairs into the %linked_map.
 	 *  @param  __list  A std::initializer_list<value_type> of pairs to be
 	 *                  inserted.
 	 *
@@ -754,7 +789,7 @@ public:
 #endif
 
 	/**
-	 *  @brief Attempts to insert a std::pair into the %map.
+	 *  @brief Attempts to insert a std::pair into the %linked_map.
 	 *  @param  __position  An iterator that serves as a hint as to where the
 	 *                    pair should be inserted.
 	 *  @param  __x  Pair to be inserted (see std::make_pair for easy creation
@@ -812,14 +847,14 @@ public:
 #if __cplusplus >= 201103L
 	// DR 130. Associative erase should return an iterator.
 	/**
-	 *  @brief Erases an element from a %map.
+	 *  @brief Erases an element from a %linked_map.
 	 *  @param  __position  An iterator pointing to the element to be erased.
 	 *  @return An iterator pointing to the element immediately following
 	 *          @a position prior to the element being erased. If no such
 	 *          element exists, end() is returned.
 	 *
 	 *  This function erases an element, pointed to by the given
-	 *  iterator, from a %map.  Note that this function only erases
+	 *  iterator, from a %linked_map.  Note that this function only erases
 	 *  the element, and that if the element is itself a pointer,
 	 *  the pointed-to memory is not touched in any way.  Managing
 	 *  the pointer is the user's responsibility.
@@ -834,18 +869,35 @@ public:
 	{
 		return _M_t.erase(__position);
 	}
+
+	link_iterator erase(const_link_iterator __position)
+	{
+		return _M_t.erase(__position);
+	}
+
+	// LWG 2059
+	link_iterator erase(link_iterator __position)
+	{
+		return _M_t.erase(__position);
+	}
+
 #else
 	/**
-	 *  @brief Erases an element from a %map.
+	 *  @brief Erases an element from a %linked_map.
 	 *  @param  __position  An iterator pointing to the element to be erased.
 	 *
 	 *  This function erases an element, pointed to by the given
-	 *  iterator, from a %map.  Note that this function only erases
+	 *  iterator, from a %linked_map.  Note that this function only erases
 	 *  the element, and that if the element is itself a pointer,
 	 *  the pointed-to memory is not touched in any way.  Managing
 	 *  the pointer is the user's responsibility.
 	 */
 	void erase(iterator __position)
+	{
+		_M_t.erase(__position);
+	}
+
+	void erase(link_iterator __position)
 	{
 		_M_t.erase(__position);
 	}
@@ -857,7 +909,7 @@ public:
 	 *  @return  The number of elements erased.
 	 *
 	 *  This function erases all the elements located by the given key from
-	 *  a %map.
+	 *  a %linked_map.
 	 *  Note that this function only erases the element, and that if
 	 *  the element is itself a pointer, the pointed-to memory is not touched
 	 *  in any way.  Managing the pointer is the user's responsibility.
@@ -870,14 +922,14 @@ public:
 #if __cplusplus >= 201103L
 	// DR 130. Associative erase should return an iterator.
 	/**
-	 *  @brief Erases a [first,last) range of elements from a %map.
+	 *  @brief Erases a [first,last) range of elements from a %linked_map.
 	 *  @param  __first  Iterator pointing to the start of the range to be
 	 *                   erased.
 	 *  @param __last Iterator pointing to the end of the range to
 	 *                be erased.
 	 *  @return The iterator @a __last.
 	 *
-	 *  This function erases a sequence of elements from a %map.
+	 *  This function erases a sequence of elements from a %linked_map.
 	 *  Note that this function only erases the element, and that if
 	 *  the element is itself a pointer, the pointed-to memory is not touched
 	 *  in any way.  Managing the pointer is the user's responsibility.
@@ -886,15 +938,20 @@ public:
 	{
 		return _M_t.erase(__first, __last);
 	}
+
+	link_iterator erase(const_link_iterator __first, const_link_iterator __last)
+	{
+		return _M_t.erase(__first, __last);
+	}
 #else
 	/**
-	 *  @brief Erases a [__first,__last) range of elements from a %map.
+	 *  @brief Erases a [__first,__last) range of elements from a %linked_map.
 	 *  @param  __first  Iterator pointing to the start of the range to be
 	 *                   erased.
 	 *  @param __last Iterator pointing to the end of the range to
 	 *                be erased.
 	 *
-	 *  This function erases a sequence of elements from a %map.
+	 *  This function erases a sequence of elements from a %linked_map.
 	 *  Note that this function only erases the element, and that if
 	 *  the element is itself a pointer, the pointed-to memory is not touched
 	 *  in any way.  Managing the pointer is the user's responsibility.
@@ -903,11 +960,16 @@ public:
 	{
 		_M_t.erase(__first, __last);
 	}
+
+	void erase(link_iterator __first, link_iterator __last)
+	{
+		_M_t.erase(__first, __last);
+	}
 #endif
 
 	/**
-	 *  @brief  Swaps data with another %map.
-	 *  @param  __x  A %map of the same element and allocator types.
+	 *  @brief  Swaps data with another %linked_map.
+	 *  @param  __x  A %linked_map of the same element and allocator types.
 	 *
 	 *  This exchanges the elements between two maps in constant
 	 *  time.  (It is only swapping a pointer, an integer, and an
@@ -922,7 +984,7 @@ public:
 	}
 
 	/**
-	 *  Erases all elements in a %map.  Note that this function only
+	 *  Erases all elements in a %linked_map.  Note that this function only
 	 *  erases the elements, and that if the elements themselves are
 	 *  pointers, the pointed-to memory is not touched in any way.
 	 *  Managing the pointer is the user's responsibility.
@@ -934,7 +996,7 @@ public:
 
 	// observers
 	/**
-	 *  Returns the key comparison object out of which the %map was
+	 *  Returns the key comparison object out of which the %linked_map was
 	 *  constructed.
 	 */
 	key_compare key_comp() const
@@ -944,16 +1006,16 @@ public:
 
 	/**
 	 *  Returns a value comparison object, built from the key comparison
-	 *  object out of which the %map was constructed.
+	 *  object out of which the %linked_map was constructed.
 	 */
 	value_compare value_comp() const
 	{
 		return value_compare(_M_t.key_comp());
 	}
 
-	// [23.3.1.3] map operations
+	// [23.3.1.3] linked_map operations
 	/**
-	 *  @brief Tries to locate an element in a %map.
+	 *  @brief Tries to locate an element in a %linked_map.
 	 *  @param  __x  Key of (key, value) %pair to be located.
 	 *  @return  Iterator pointing to sought-after element, or end() if not
 	 *           found.
@@ -969,7 +1031,7 @@ public:
 	}
 
 	/**
-	 *  @brief Tries to locate an element in a %map.
+	 *  @brief Tries to locate an element in a %linked_map.
 	 *  @param  __x  Key of (key, value) %pair to be located.
 	 *  @return  Read-only (constant) iterator pointing to sought-after
 	 *           element, or end() if not found.
@@ -989,7 +1051,7 @@ public:
 	 *  @param  __x  Key of (key, value) pairs to be located.
 	 *  @return  Number of elements with specified key.
 	 *
-	 *  This function only makes sense for multimaps; for map the result will
+	 *  This function only makes sense for multimaps; for linked_map the result will
 	 *  either be 0 (not present) or 1 (present).
 	 */
 	size_type count(const key_type& __x) const
@@ -1105,12 +1167,12 @@ public:
 
 /**
  *  @brief  Map equality comparison.
- *  @param  __x  A %map.
- *  @param  __y  A %map of the same type as @a x.
- *  @return  True iff the size and elements of the maps are equal.
+ *  @param  __x  A %linked_map.
+ *  @param  __y  A %linked_map of the same type as @a x.
+ *  @return  True if the size and elements of the linked_maps are equal.
  *
  *  This is an equivalence relation.  It is linear in the size of the
- *  maps.  Maps are considered equivalent if their sizes are equal,
+ *  linked_maps.  linked_maps are considered equivalent if their sizes are equal,
  *  and if corresponding elements compare equal.
  */
 template<typename _Key, typename _Tp, typename _Compare, typename _Alloc>
@@ -1122,12 +1184,12 @@ inline bool operator==(const linked_map<_Key, _Tp, _Compare, _Alloc>& __x,
 
 /**
  *  @brief  Map ordering relation.
- *  @param  __x  A %map.
- *  @param  __y  A %map of the same type as @a x.
+ *  @param  __x  A %linked_map.
+ *  @param  __y  A %linked_map of the same type as @a x.
  *  @return  True iff @a x is lexicographically less than @a y.
  *
  *  This is a total ordering relation.  It is linear in the size of the
- *  maps.  The elements must be comparable with @c <.
+ *  linked_maps. The elements must be comparable with @c <.
  *
  *  See std::lexicographical_compare() for how the determination is made.
  */
@@ -1170,7 +1232,6 @@ inline bool operator>=(const linked_map<_Key, _Tp, _Compare, _Alloc>& __x,
 	return !(__x < __y);
 }
 
-/// See std::map::swap().
 template<typename _Key, typename _Tp, typename _Compare, typename _Alloc>
 inline void swap(linked_map<_Key, _Tp, _Compare, _Alloc>& __x,
         linked_map<_Key, _Tp, _Compare, _Alloc>& __y)
@@ -1178,6 +1239,6 @@ inline void swap(linked_map<_Key, _Tp, _Compare, _Alloc>& __x,
 	__x.swap(__y);
 }
 
-} // namespace std
+} // namespace ant
 
 #endif /* LIBANT_CONTAINER_LINKED_MAP_H_ */

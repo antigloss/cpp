@@ -872,7 +872,7 @@ inline bool operator==(const linked_set<_Key, _Compare, _Alloc>& __x,
  *  @return  True iff @a __x is lexicographically less than @a __y.
  *
  *  This is a total ordering relation.  It is linear in the size of the
- *  maps.  The elements must be comparable with @c <.
+ *  linked_sets.  The elements must be comparable with @c <.
  *
  *  See std::lexicographical_compare() for how the determination is made.
  */
