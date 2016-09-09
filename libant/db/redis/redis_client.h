@@ -224,14 +224,14 @@ public:
 	 * @param vals
 	 * @param cnt
 	 */
-	bool sadd(const std::string& key, const std::vector<const std::string*>& vals, long long* cnt);
+	bool sadd(const std::string& key, const std::vector<std::string>& vals, long long* cnt = 0);
 	/**
-	 * @brief
+	 * @brief Determine if `val` is a member of the set stored at `key`.
 	 * @param key
 	 * @param val
-	 * @param is_member
+	 * @param is_member true if is a member, false if not a member or not exist
 	 */
-	bool sismember(const std::string& key, const std::string& val, int& is_member);
+	bool sismember(const std::string& key, const std::string& val, bool& is_member);
 	// TODO
 	bool hget(const std::string& key, std::map<std::string, std::string>& fields);
 	bool hset(const std::string& key, const std::map<std::string, std::string>& fields);
@@ -252,10 +252,13 @@ private:
 		redisFree(m_context);
 		m_context = 0;
 	}
-	redisReply* exec_redis_command(const char* fmt, ...);
-	redisReply* exec_redis_commandv(const std::string& cmd, const std::vector<const std::string*>& args, const std::string* key = 0);
+	redisReply* exec(const char* fmt, ...);
+	redisReply* execv(const std::string& cmd, const std::string& key, const std::vector<std::string>& args);
 	// TODO
 	redisReply* exec_redis_command(const std::string& full_cmd);
+
+private:
+	typedef const char* const_char_ptr;
 
 // helpers
 private:

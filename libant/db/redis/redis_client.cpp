@@ -10,18 +10,17 @@
 #include <cstdlib>
 #include <stdexcept>
 
-
-
-// TODO ---------------------------------------
-#include <iostream>
-
-
-
 #include "redis_client.h"
 
 using namespace std;
 
 namespace ant {
+
+enum {
+	kVecArgMaxSize		= 2000000000,
+
+	kStaticArgvMaxSize	= 500,
+};
 
 static string kSetOpErrMsg[RedisClient::kSetOpCnt] = {
 		"Unknow error", "Key already exist", "Key not exist"
@@ -75,16 +74,15 @@ RedisClient::RedisClient(const string& ip_port)
 
 bool RedisClient::select_db(int dbidx)
 {
-	ScopedReplyPointer reply = exec_redis_command("SELECT %d", dbidx);
+	ScopedReplyPointer reply = exec("SELECT %d", dbidx);
 	CHECK_REPLY(reply, REDIS_REPLY_STATUS);
 	return true;
 }
 
 bool RedisClient::expire(const std::string& key, unsigned int seconds)
 {
-	ScopedReplyPointer reply = exec_redis_command("EXPIRE %b %u", key.c_str(),
-													static_cast<size_t>(key.size()),
-													seconds);
+	ScopedReplyPointer reply = exec("EXPIRE %b %u", key.c_str(),
+									static_cast<size_t>(key.size()), seconds);
 	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
 	if (reply->integer == 1) {
 		return true;
@@ -96,9 +94,9 @@ bool RedisClient::expire(const std::string& key, unsigned int seconds)
 
 bool RedisClient::expire_at(const std::string& key, time_t expired_tm)
 {
-	ScopedReplyPointer reply = exec_redis_command("EXPIREAT %b %lld", key.c_str(),
-													static_cast<size_t>(key.size()),
-													static_cast<long long>(expired_tm));
+	ScopedReplyPointer reply = exec("EXPIREAT %b %lld", key.c_str(),
+									static_cast<size_t>(key.size()),
+									static_cast<long long>(expired_tm));
 	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
 	if (reply->integer == 1) {
 		return true;
@@ -110,8 +108,7 @@ bool RedisClient::expire_at(const std::string& key, time_t expired_tm)
 
 bool RedisClient::ttl(const std::string& key, long long& ttl)
 {
-	ScopedReplyPointer reply = exec_redis_command("TTL %b", key.c_str(),
-													static_cast<size_t>(key.size()));
+	ScopedReplyPointer reply = exec("TTL %b", key.c_str(), static_cast<size_t>(key.size()));
 	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
 	ttl = reply->integer;
 	return true;
@@ -129,16 +126,16 @@ bool RedisClient::set(const string& key, const string& val, const ExpirationTime
 
 		switch (op_type) {
 		case kSetAnyhow:
-			reply = exec_redis_command("SET %b %b EX %lld", key.c_str(), static_cast<size_t>(key.size()),
-										val.c_str(), static_cast<size_t>(val.size()), ttl);
+			reply = exec("SET %b %b EX %lld", key.c_str(), static_cast<size_t>(key.size()),
+							val.c_str(), static_cast<size_t>(val.size()), ttl);
 			break;
 		case kSetIfNotExist:
-			reply = exec_redis_command("SET %b %b EX %lld NX", key.c_str(), static_cast<size_t>(key.size()),
-										val.c_str(), static_cast<size_t>(val.size()), ttl);
+			reply = exec("SET %b %b EX %lld NX", key.c_str(), static_cast<size_t>(key.size()),
+							val.c_str(), static_cast<size_t>(val.size()), ttl);
 			break;
 		case kSetIfExist:
-			reply = exec_redis_command("SET %b %b EX %lld XX", key.c_str(), static_cast<size_t>(key.size()),
-										val.c_str(), static_cast<size_t>(val.size()), ttl);
+			reply = exec("SET %b %b EX %lld XX", key.c_str(), static_cast<size_t>(key.size()),
+							val.c_str(), static_cast<size_t>(val.size()), ttl);
 			break;
 		default:
 			set_errmsg("Unsupported op_type ", op_type);
@@ -147,16 +144,16 @@ bool RedisClient::set(const string& key, const string& val, const ExpirationTime
 	} else {
 		switch (op_type) {
 		case kSetAnyhow:
-			reply = exec_redis_command("SET %b %b", key.c_str(), static_cast<size_t>(key.size()),
-										val.c_str(), static_cast<size_t>(val.size()));
+			reply = exec("SET %b %b", key.c_str(), static_cast<size_t>(key.size()),
+							val.c_str(), static_cast<size_t>(val.size()));
 			break;
 		case kSetIfNotExist:
-			reply = exec_redis_command("SET %b %b NX", key.c_str(), static_cast<size_t>(key.size()),
-										val.c_str(), static_cast<size_t>(val.size()));
+			reply = exec("SET %b %b NX", key.c_str(), static_cast<size_t>(key.size()),
+							val.c_str(), static_cast<size_t>(val.size()));
 			break;
 		case kSetIfExist:
-			reply = exec_redis_command("SET %b %b XX", key.c_str(), static_cast<size_t>(key.size()),
-										val.c_str(), static_cast<size_t>(val.size()));
+			reply = exec("SET %b %b XX", key.c_str(), static_cast<size_t>(key.size()),
+							val.c_str(), static_cast<size_t>(val.size()));
 			break;
 		default:
 			set_errmsg("Unsupported op_type ", op_type);
@@ -185,7 +182,7 @@ bool RedisClient::set(const string& key, const string& val, const ExpirationTime
 
 bool RedisClient::get(const std::string& key, std::string& val, bool* key_exists)
 {
-	ScopedReplyPointer reply = exec_redis_command("GET %b", key.c_str(), static_cast<size_t>(key.size()));
+	ScopedReplyPointer reply = exec("GET %b", key.c_str(), static_cast<size_t>(key.size()));
 	if (!reply) {
 		return false;
 	}
@@ -212,13 +209,9 @@ bool RedisClient::get(const std::string& key, std::string& val, bool* key_exists
 	}
 }
 
-// TODO ---------------------------------------
-
-bool RedisClient::sadd(const string& key, const vector<const string*>& vals, long long* cnt)
+bool RedisClient::sadd(const string& key, const vector<string>& vals, long long* cnt)
 {
-	// TODO val
-
-	ScopedReplyPointer reply = exec_redis_commandv("SADD", vals, &key);
+	ScopedReplyPointer reply = execv("SADD", key, vals);
 	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
 	if (cnt) {
 		*cnt = reply->integer;
@@ -226,25 +219,16 @@ bool RedisClient::sadd(const string& key, const vector<const string*>& vals, lon
 	return true;
 }
 
-bool RedisClient::sismember(const std::string& key, const std::string& val, int& is_member)
+bool RedisClient::sismember(const std::string& key, const std::string& val, bool& is_member)
 {
-	ScopedReplyPointer reply = exec_redis_command("SISMEMBER %s %s", key.c_str(), val.c_str());
-	if (!reply) {
-		return false;
-	}
-
-	switch (reply->type) {
-	case REDIS_REPLY_INTEGER:
-		is_member = reply->integer;
-		return true;
-	case REDIS_REPLY_ERROR:
-		//ERROR_LOG("failed to set expired time: %s", reply->str);
-		return false;
-	default:
-		//ERROR_LOG("failed to set expired time: type=%d", reply->type);
-		return false;
-	}
+	ScopedReplyPointer reply = exec("SISMEMBER %b %b", key.c_str(), static_cast<size_t>(key.size()),
+									val.c_str(), static_cast<size_t>(val.size()));
+	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
+	is_member = reply->integer;
+	return true;
 }
+
+// TODO -----  Set Ops ----------------------------------
 
 bool RedisClient::hget(const string& key, map<string, string>& fields)
 {
@@ -348,22 +332,7 @@ bool RedisClient::alloc_context()
 	return false;
 }
 
-// TODO
-redisReply* RedisClient::exec_redis_command(const string& cmd)
-{
-	if (!has_context() && !alloc_context()) {
-		return 0;
-	}
-
-	redisReply* reply = reinterpret_cast<redisReply*>(redisCommand(m_context, cmd.c_str()));
-	if (!reply) {
-		set_errmsg(m_context->errstr, " (", m_context->err, ')');
-		free_context();
-	}
-	return reply;
-}
-
-redisReply* RedisClient::exec_redis_command(const char* fmt, ...)
+redisReply* RedisClient::exec(const char* fmt, ...)
 {
 	if (!has_context() && !alloc_context()) {
 		return 0;
@@ -381,32 +350,34 @@ redisReply* RedisClient::exec_redis_command(const char* fmt, ...)
 	return reply;
 }
 
-redisReply* RedisClient::exec_redis_commandv(const string& cmd, const vector<const string*>& args, const string* key)
+redisReply* RedisClient::execv(const string& cmd, const string& key, const vector<string>& args)
 {
+	if (!args.size() || args.size() > kVecArgMaxSize) {
+		set_errmsg("Size of args is invalid (", args.size(), ')');
+		return 0;
+	}
+
 	if (!has_context() && !alloc_context()) {
 		return 0;
 	}
 
-	typedef const char* const_char_ptr;
+	const_char_ptr tmpArgv[kStaticArgvMaxSize];
+	size_t tmpArgLens[kStaticArgvMaxSize];
+	const_char_ptr* argv = tmpArgv;
+	size_t* arglens = tmpArgLens;
 
-	int plus = 1;
-	int argc = args.size() + 1;
-	if (key) {
-		++argc;
-		++plus;
+	int argc = 2 + args.size();
+	if (argc > kStaticArgvMaxSize) {
+		argv = new const_char_ptr[argc];
+		arglens = new size_t[argc];
 	}
-
-	const_char_ptr* argv = new const_char_ptr[argc];
-	size_t* arglens = new size_t[argc];
 	argv[0] = cmd.c_str();
 	arglens[0] = cmd.size();
-	if (key) {
-		argv[1] = key->c_str();
-		arglens[1] = key->size();
-	}
-	for (vector<const string*>::size_type i = 0; i != args.size(); ++i) {
-		argv[i + plus] = args[i]->c_str();
-		arglens[i + plus] = args[i]->size();
+	argv[1] = key.c_str();
+	arglens[1] = key.size();
+	for (vector<string>::size_type i = 0; i != args.size(); ++i) {
+		argv[i + 2] = args[i].c_str();
+		arglens[i + 2] = args[i].size();
 	}
 
 	redisReply* reply = reinterpret_cast<redisReply*>(redisCommandArgv(m_context, argc, argv, arglens));
@@ -415,9 +386,26 @@ redisReply* RedisClient::exec_redis_commandv(const string& cmd, const vector<con
 		free_context();
 	}
 
-	delete[] argv;
-	delete[] arglens;
+	if (argc > kStaticArgvMaxSize) {
+		delete[] argv;
+		delete[] arglens;
+	}
 
+	return reply;
+}
+
+// TODO
+redisReply* RedisClient::exec_redis_command(const string& cmd)
+{
+	if (!has_context() && !alloc_context()) {
+		return 0;
+	}
+
+	redisReply* reply = reinterpret_cast<redisReply*>(redisCommand(m_context, cmd.c_str()));
+	if (!reply) {
+		set_errmsg(m_context->errstr, " (", m_context->err, ')');
+		free_context();
+	}
 	return reply;
 }
 
