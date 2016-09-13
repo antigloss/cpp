@@ -211,11 +211,33 @@ bool RedisClient::get(const std::string& key, std::string& val, bool* key_exists
 
 bool RedisClient::sadd(const string& key, const vector<string>& vals, long long* cnt)
 {
-	ScopedReplyPointer reply = execv("SADD", key, vals);
+	ScopedReplyPointer reply = execv("SADD", key, &vals);
 	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
 	if (cnt) {
 		*cnt = reply->integer;
 	}
+	return true;
+}
+
+bool RedisClient::scard(const std::string& key, long long& cnt)
+{
+	ScopedReplyPointer reply = exec("SCARD %b", key.c_str(), static_cast<size_t>(key.size()));
+	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
+	cnt = reply->integer;
+	return true;
+}
+
+bool RedisClient::sdiff(const string& key, const vector<string>& keys, vector<string>& diffs)
+{
+	ScopedReplyPointer reply = execv("SDIFF", key, &keys);
+	CHECK_REPLY(reply, REDIS_REPLY_ARRAY);
+
+	diffs.clear();
+	diffs.reserve(reply->elements);
+	for (size_t i = 0; i != reply->elements; ++i) {
+		diffs.emplace_back(string(reply->element[i]->str, reply->element[i]->len));
+	}
+
 	return true;
 }
 
@@ -350,10 +372,10 @@ redisReply* RedisClient::exec(const char* fmt, ...)
 	return reply;
 }
 
-redisReply* RedisClient::execv(const string& cmd, const string& key, const vector<string>& args)
+redisReply* RedisClient::execv(const string& cmd, const string& key, const vector<string>* args)
 {
-	if (!args.size() || args.size() > kVecArgMaxSize) {
-		set_errmsg("Size of args is invalid (", args.size(), ')');
+	if (args && (!args->size() || args->size() > kVecArgMaxSize)) {
+		set_errmsg("Size of args is invalid (", args->size(), ')');
 		return 0;
 	}
 
@@ -366,7 +388,11 @@ redisReply* RedisClient::execv(const string& cmd, const string& key, const vecto
 	const_char_ptr* argv = tmpArgv;
 	size_t* arglens = tmpArgLens;
 
-	int argc = 2 + args.size();
+	int argc = 2;
+	if (args) {
+		argc += args->size();
+	}
+
 	if (argc > kStaticArgvMaxSize) {
 		argv = new const_char_ptr[argc];
 		arglens = new size_t[argc];
@@ -375,9 +401,11 @@ redisReply* RedisClient::execv(const string& cmd, const string& key, const vecto
 	arglens[0] = cmd.size();
 	argv[1] = key.c_str();
 	arglens[1] = key.size();
-	for (vector<string>::size_type i = 0; i != args.size(); ++i) {
-		argv[i + 2] = args[i].c_str();
-		arglens[i + 2] = args[i].size();
+	if (args) {
+		for (vector<string>::size_type i = 0; i != args->size(); ++i) {
+			argv[i + 2] = (*args)[i].c_str();
+			arglens[i + 2] = (*args)[i].size();
+		}
 	}
 
 	redisReply* reply = reinterpret_cast<redisReply*>(redisCommandArgv(m_context, argc, argv, arglens));

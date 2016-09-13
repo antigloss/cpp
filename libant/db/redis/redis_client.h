@@ -226,6 +226,20 @@ public:
 	 */
 	bool sadd(const std::string& key, const std::vector<std::string>& vals, long long* cnt = 0);
 	/**
+	 * @brief Gets number of elements of the set stored at key
+	 * @param key
+	 * @param cnt
+	 */
+	bool scard(const std::string& key, long long& cnt);
+	/**
+	 * @brief Gets the members of the set resulting from the difference between
+	 * 			the set stored at `key` and all the other sets stored at `keys`.
+	 * @param key
+	 * @param keys
+	 * @param diffs
+	 */
+	bool sdiff(const std::string& key, const std::vector<std::string>& keys, std::vector<std::string>& diffs);
+	/**
 	 * @brief Determine if `val` is a member of the set stored at `key`.
 	 * @param key
 	 * @param val
@@ -253,7 +267,7 @@ private:
 		m_context = 0;
 	}
 	redisReply* exec(const char* fmt, ...);
-	redisReply* execv(const std::string& cmd, const std::string& key, const std::vector<std::string>& args);
+	redisReply* execv(const std::string& cmd, const std::string& key, const std::vector<std::string>* args = 0);
 	// TODO
 	redisReply* exec_redis_command(const std::string& full_cmd);
 
