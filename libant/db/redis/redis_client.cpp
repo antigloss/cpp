@@ -211,7 +211,7 @@ bool RedisClient::get(const std::string& key, std::string& val, bool* key_exists
 
 bool RedisClient::sadd(const string& key, const vector<string>& vals, long long* cnt)
 {
-	ScopedReplyPointer reply = execv("SADD", key, &vals);
+	ScopedReplyPointer reply = execv("SADD", &key, &vals);
 	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
 	if (cnt) {
 		*cnt = reply->integer;
@@ -227,17 +227,39 @@ bool RedisClient::scard(const std::string& key, long long& cnt)
 	return true;
 }
 
-bool RedisClient::sdiff(const string& key, const vector<string>& keys, vector<string>& diffs)
+bool RedisClient::sdiff(const vector<string>& keys, vector<string>& result)
 {
-	ScopedReplyPointer reply = execv("SDIFF", key, &keys);
+	ScopedReplyPointer reply = execv("SDIFF", 0, &keys);
 	CHECK_REPLY(reply, REDIS_REPLY_ARRAY);
+	arr_reply_to_vector(reply->element, reply->elements, result);
+	return true;
+}
 
-	diffs.clear();
-	diffs.reserve(reply->elements);
-	for (size_t i = 0; i != reply->elements; ++i) {
-		diffs.emplace_back(string(reply->element[i]->str, reply->element[i]->len));
+bool RedisClient::sdiff_store(const string& dest, const vector<string>& keys, long long* cnt)
+{
+	ScopedReplyPointer reply = execv("SDIFFSTORE", &dest, &keys);
+	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
+	if (cnt) {
+		*cnt = reply->integer;
 	}
+	return true;
+}
 
+bool RedisClient::sinter(const vector<string>& keys, vector<string>& result)
+{
+	ScopedReplyPointer reply = execv("SINTER", 0, &keys);
+	CHECK_REPLY(reply, REDIS_REPLY_ARRAY);
+	arr_reply_to_vector(reply->element, reply->elements, result);
+	return true;
+}
+
+bool RedisClient::sinter_store(const string& dest, const vector<string>& keys, long long* cnt)
+{
+	ScopedReplyPointer reply = execv("SINTERSTORE", &dest, &keys);
+	CHECK_REPLY(reply, REDIS_REPLY_INTEGER);
+	if (cnt) {
+		*cnt = reply->integer;
+	}
 	return true;
 }
 
@@ -372,7 +394,7 @@ redisReply* RedisClient::exec(const char* fmt, ...)
 	return reply;
 }
 
-redisReply* RedisClient::execv(const string& cmd, const string& key, const vector<string>* args)
+redisReply* RedisClient::execv(const string& cmd, const string* key, const vector<string>* args)
 {
 	if (args && (!args->size() || args->size() > kVecArgMaxSize)) {
 		set_errmsg("Size of args is invalid (", args->size(), ')');
@@ -388,23 +410,30 @@ redisReply* RedisClient::execv(const string& cmd, const string& key, const vecto
 	const_char_ptr* argv = tmpArgv;
 	size_t* arglens = tmpArgLens;
 
-	int argc = 2;
+	int plus = 1;
+	int argc = 1;
+	if (key) {
+		++plus;
+		++argc;
+	}
 	if (args) {
 		argc += args->size();
 	}
-
 	if (argc > kStaticArgvMaxSize) {
 		argv = new const_char_ptr[argc];
 		arglens = new size_t[argc];
 	}
+
 	argv[0] = cmd.c_str();
 	arglens[0] = cmd.size();
-	argv[1] = key.c_str();
-	arglens[1] = key.size();
+	if (key) {
+		argv[1] = key->c_str();
+		arglens[1] = key->size();
+	}
 	if (args) {
 		for (vector<string>::size_type i = 0; i != args->size(); ++i) {
-			argv[i + 2] = (*args)[i].c_str();
-			arglens[i + 2] = (*args)[i].size();
+			argv[i + plus] = (*args)[i].c_str();
+			arglens[i + plus] = (*args)[i].size();
 		}
 	}
 
@@ -435,6 +464,15 @@ redisReply* RedisClient::exec_redis_command(const string& cmd)
 		free_context();
 	}
 	return reply;
+}
+
+void RedisClient::arr_reply_to_vector(redisReply* const replies[], size_t reply_num, vector<string>& result)
+{
+	result.clear();
+	result.reserve(reply_num);
+	for (size_t i = 0; i != reply_num; ++i) {
+		result.emplace_back(string(replies[i]->str, replies[i]->len));
+	}
 }
 
 }

@@ -233,12 +233,35 @@ public:
 	bool scard(const std::string& key, long long& cnt);
 	/**
 	 * @brief Gets the members of the set resulting from the difference between
-	 * 			the set stored at `key` and all the other sets stored at `keys`.
-	 * @param key
+	 * 			the first set and all the successive sets specified by `keys`
 	 * @param keys
-	 * @param diffs
+	 * @param result
 	 */
-	bool sdiff(const std::string& key, const std::vector<std::string>& keys, std::vector<std::string>& diffs);
+	bool sdiff(const std::vector<std::string>& keys, std::vector<std::string>& result);
+	/**
+	 * @brief Stores the result of the difference between the first set
+	 * 			and all the successive sets specified by `keys` to `dest`.
+	 * 			If `dest` already exists, it is overwritten.
+	 * @param dest
+	 * @param keys
+	 * @param cnt
+	 */
+	bool sdiff_store(const std::string& dest, const std::vector<std::string>& keys, long long* cnt = 0);
+	/**
+	 * @brief Gets the members of the set resulting from the intersection of
+	 * 			all the given sets specified by `keys`.
+	 * @param keys
+	 * @param result
+	 */
+	bool sinter(const std::vector<std::string>& keys, std::vector<std::string>& result);
+	/**
+	 * @brief Stores the result of the intersection of all the given sets
+	 * 			specified by `keys` to `dest`. If `dest` already exists, it is overwritten.
+	 * @param dest
+	 * @param keys
+	 * @param cnt
+	 */
+	bool sinter_store(const std::string& dest, const std::vector<std::string>& keys, long long* cnt = 0);
 	/**
 	 * @brief Determine if `val` is a member of the set stored at `key`.
 	 * @param key
@@ -267,9 +290,11 @@ private:
 		m_context = 0;
 	}
 	redisReply* exec(const char* fmt, ...);
-	redisReply* execv(const std::string& cmd, const std::string& key, const std::vector<std::string>* args = 0);
+	redisReply* execv(const std::string& cmd, const std::string* key = 0, const std::vector<std::string>* args = 0);
 	// TODO
 	redisReply* exec_redis_command(const std::string& full_cmd);
+
+	void arr_reply_to_vector(redisReply* const replies[], size_t reply_num, std::vector<std::string>& result);
 
 private:
 	typedef const char* const_char_ptr;
