@@ -16,12 +16,6 @@ using namespace std;
 
 namespace ant {
 
-enum {
-	kVecArgMaxSize		= 2000000000,
-
-	kStaticArgvMaxSize	= 500,
-};
-
 static string kSetOpErrMsg[RedisClient::kSetOpCnt] = {
 		"Unknow error", "Key already exist", "Key not exist"
 };
@@ -391,63 +385,6 @@ redisReply* RedisClient::exec(const char* fmt, ...)
 		set_errmsg(m_context->errstr, " (", m_context->err, ')');
 		free_context();
 	}
-	return reply;
-}
-
-redisReply* RedisClient::execv(const string& cmd, const string* key, const vector<string>* args)
-{
-	if (args && (!args->size() || args->size() > kVecArgMaxSize)) {
-		set_errmsg("Size of args is invalid (", args->size(), ')');
-		return 0;
-	}
-
-	if (!has_context() && !alloc_context()) {
-		return 0;
-	}
-
-	const_char_ptr tmpArgv[kStaticArgvMaxSize];
-	size_t tmpArgLens[kStaticArgvMaxSize];
-	const_char_ptr* argv = tmpArgv;
-	size_t* arglens = tmpArgLens;
-
-	int plus = 1;
-	int argc = 1;
-	if (key) {
-		++plus;
-		++argc;
-	}
-	if (args) {
-		argc += args->size();
-	}
-	if (argc > kStaticArgvMaxSize) {
-		argv = new const_char_ptr[argc];
-		arglens = new size_t[argc];
-	}
-
-	argv[0] = cmd.c_str();
-	arglens[0] = cmd.size();
-	if (key) {
-		argv[1] = key->c_str();
-		arglens[1] = key->size();
-	}
-	if (args) {
-		for (vector<string>::size_type i = 0; i != args->size(); ++i) {
-			argv[i + plus] = (*args)[i].c_str();
-			arglens[i + plus] = (*args)[i].size();
-		}
-	}
-
-	redisReply* reply = reinterpret_cast<redisReply*>(redisCommandArgv(m_context, argc, argv, arglens));
-	if (!reply) {
-		set_errmsg(m_context->errstr, " (", m_context->err, ')');
-		free_context();
-	}
-
-	if (argc > kStaticArgvMaxSize) {
-		delete[] argv;
-		delete[] arglens;
-	}
-
 	return reply;
 }
 

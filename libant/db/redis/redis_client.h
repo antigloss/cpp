@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <type_traits>
 #include <vector>
 
 #include <hiredis/hiredis.h>
@@ -135,6 +136,13 @@ public:
 		time_t	m_expire_tm;
 	};
 
+private:
+	enum Consts {
+		kVecArgMaxSize		= 2000000000,
+
+		kStaticArgvMaxSize	= 500,
+	};
+
 public:
 	/**
 	 * @brief
@@ -218,6 +226,8 @@ public:
 		return false;
 	}
 
+	// TODO template<typename CONTAINER>
+
 	/**
 	 * @brief
 	 * @param key
@@ -290,7 +300,71 @@ private:
 		m_context = 0;
 	}
 	redisReply* exec(const char* fmt, ...);
-	redisReply* execv(const std::string& cmd, const std::string* key = 0, const std::vector<std::string>* args = 0);
+
+	template<typename STR_CONTAINER>
+	redisReply* execv(const std::string& cmd, const std::string* key, const STR_CONTAINER* args)
+	{
+		static_assert(std::is_same<typename STR_CONTAINER::value_type, std::string>::value,
+						"Element type of the container must be std::string!");
+
+		if (args && (!args->size() || args->size() > kVecArgMaxSize)) {
+			set_errmsg("Size of args is invalid (", args->size(), ')');
+			return 0;
+		}
+
+		if (!has_context() && !alloc_context()) {
+			return 0;
+		}
+
+		const_char_ptr tmpArgv[kStaticArgvMaxSize];
+		size_t tmpArgLens[kStaticArgvMaxSize];
+		const_char_ptr* argv = tmpArgv;
+		size_t* arglens = tmpArgLens;
+
+		int plus = 1;
+		int argc = 1;
+		if (key) {
+			++plus;
+			++argc;
+		}
+		if (args) {
+			argc += args->size();
+		}
+		if (argc > kStaticArgvMaxSize) {
+			argv = new const_char_ptr[argc];
+			arglens = new size_t[argc];
+		}
+
+		argv[0] = cmd.c_str();
+		arglens[0] = cmd.size();
+		if (key) {
+			argv[1] = key->c_str();
+			arglens[1] = key->size();
+		}
+		if (args) {
+			int i = 0;
+			for (typename STR_CONTAINER::const_iterator it = args->begin();
+					it != args->end(); ++it) {
+				argv[i + plus] = it->c_str();
+				arglens[i + plus] = it->size();
+				++i;
+			}
+		}
+
+		redisReply* reply = reinterpret_cast<redisReply*>(redisCommandArgv(m_context, argc, argv, arglens));
+		if (!reply) {
+			set_errmsg(m_context->errstr, " (", m_context->err, ')');
+			free_context();
+		}
+
+		if (argc > kStaticArgvMaxSize) {
+			delete[] argv;
+			delete[] arglens;
+		}
+
+		return reply;
+	}
+
 	// TODO
 	redisReply* exec_redis_command(const std::string& full_cmd);
 
