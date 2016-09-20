@@ -270,83 +270,42 @@ bool RedisClient::sismember(const std::string& key, const std::string& val, bool
 
 bool RedisClient::hget(const string& key, map<string, string>& fields)
 {
-	// TODO
-//	assert(key.size() && fields.size());
+	ScopedReplyPointer reply = execm("HMGET", key, fields);
+	CHECK_REPLY(reply, REDIS_REPLY_ARRAY);
 
-	// TODO
-	ostringstream oss;
-	oss << "hmget " << key;
-	for (map<string, string>::iterator it = fields.begin(); it != fields.end(); ++it) {
-		oss << ' ' << it->first;
-	}
-
-	ScopedReplyPointer reply = exec_redis_command(oss.str());
-	if (!reply) {
+	if (reply->elements != fields.size()) {
+		set_errmsg("Invalid number of elements returned! Expected ",
+					fields.size(), ", Returned ", reply->elements);
 		return false;
 	}
 
-	if (reply->type == REDIS_REPLY_ARRAY) {
-		// TODO
-		//assert(reply->elements == fields.size());
-
-		size_t n = 0;
-		for (map<string, string>::iterator it = fields.begin(); it != fields.end(); ++it) {
-			redisReply* r = reply->element[n];
-			switch (r->type) {
-			case REDIS_REPLY_STRING:
-				it->second = r->str;
-				break;
-			case REDIS_REPLY_NIL:
-				it->second = "";
-				break;
-			case REDIS_REPLY_ERROR:
-				//ERROR_LOG("hmget failed: cmd=[%s] err=[%s]", oss.str().c_str(), r->str);
-				return false;
-			default:
-				//ERROR_LOG("hmget failed: cmd=[%s] type=[%d]", oss.str().c_str(), r->type);
-				return false;
-			}
-			++n;
+	size_t n = 0;
+	for (map<string, string>::iterator it = fields.begin(); it != fields.end(); ++it) {
+		redisReply* r = reply->element[n];
+		switch (r->type) {
+		case REDIS_REPLY_STRING:
+			it->second = r->str;
+			break;
+		case REDIS_REPLY_NIL:
+			it->second = "";
+			break;
+		case REDIS_REPLY_ERROR:
+			set_errmsg(reply->str);
+			return false;
+		default:
+			set_errmsg("Unexpected reply type ", reply->type);
+			return false;
 		}
-		return true;
+		++n;
 	}
-
-	if (reply->type == REDIS_REPLY_ERROR) {
-		//ERROR_LOG("hmget failed: cmd=[%s] err=[%s]", oss.str().c_str(), reply->str);
-	} else {
-		//ERROR_LOG("hmget failed: cmd=[%s] err=[%d]", oss.str().c_str(), reply->type);
-	}
-
-	return false;
+	return true;
 }
 
 bool RedisClient::hset(const std::string& key, const std::map<std::string, std::string>& fields)
 {
-	// TODO
-	//assert(key.size() && fields.size());
-
-	// TODO
-	ostringstream oss;
-	oss << "hmset " << key;
-	for (map<string, string>::const_iterator it = fields.begin(); it != fields.end(); ++it) {
-		oss << ' ' << it->first << ' ' << it->second;
-	}
-
-	ScopedReplyPointer reply = exec_redis_command(oss.str());
-	if (!reply) {
-		return false;
-	}
-
-	switch (reply->type) {
-	case REDIS_REPLY_STATUS:
-		return true;
-	case REDIS_REPLY_ERROR:
-		//ERROR_LOG("hmset failed: %s", reply->str);
-		return false;
-	default:
-		//ERROR_LOG("hmset failed: type=%d", reply->type);
-		return false;
-	}
+	ScopedReplyPointer reply = execm("HMSET", key, fields, true);
+	CHECK_REPLY(reply, REDIS_REPLY_STATUS);
+	return true;
 }
 
 //----------------------------------------------------------
@@ -381,21 +340,6 @@ redisReply* RedisClient::exec(const char* fmt, ...)
 	redisReply* reply = reinterpret_cast<redisReply*>(redisvCommand(m_context, fmt, ap));
 	va_end(ap);
 
-	if (!reply) {
-		set_errmsg(m_context->errstr, " (", m_context->err, ')');
-		free_context();
-	}
-	return reply;
-}
-
-// TODO
-redisReply* RedisClient::exec_redis_command(const string& cmd)
-{
-	if (!has_context() && !alloc_context()) {
-		return 0;
-	}
-
-	redisReply* reply = reinterpret_cast<redisReply*>(redisCommand(m_context, cmd.c_str()));
 	if (!reply) {
 		set_errmsg(m_context->errstr, " (", m_context->err, ')');
 		free_context();

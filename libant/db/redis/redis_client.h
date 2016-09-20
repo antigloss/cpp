@@ -143,6 +143,8 @@ private:
 		kStaticArgvMaxSize	= 500,
 	};
 
+	typedef const char* const_char_ptr;
+
 public:
 	/**
 	 * @brief
@@ -279,26 +281,30 @@ public:
 	 * @param is_member true if is a member, false if not a member or not exist
 	 */
 	bool sismember(const std::string& key, const std::string& val, bool& is_member);
-	// TODO
+
 	bool hget(const std::string& key, std::map<std::string, std::string>& fields);
 	bool hset(const std::string& key, const std::map<std::string, std::string>& fields);
 
 private:
 	bool alloc_context();
+
 	bool realloc_context()
 	{
 		free_context();
 		return alloc_context();
 	}
+
 	bool has_context() const
 	{
 		return m_context;
 	}
+
 	void free_context()
 	{
 		redisFree(m_context);
 		m_context = 0;
 	}
+
 	redisReply* exec(const char* fmt, ...);
 
 	template<typename STR_CONTAINER>
@@ -307,32 +313,16 @@ private:
 		static_assert(std::is_same<typename STR_CONTAINER::value_type, std::string>::value,
 						"Element type of the container must be std::string!");
 
-		if (args && (!args->size() || args->size() > kVecArgMaxSize)) {
-			set_errmsg("Size of args is invalid (", args->size(), ')');
-			return 0;
-		}
-
 		if (!has_context() && !alloc_context()) {
 			return 0;
 		}
 
-		const_char_ptr tmpArgv[kStaticArgvMaxSize];
-		size_t tmpArgLens[kStaticArgvMaxSize];
-		const_char_ptr* argv = tmpArgv;
-		size_t* arglens = tmpArgLens;
-
-		int plus = 1;
-		int argc = 1;
-		if (key) {
-			++plus;
-			++argc;
-		}
-		if (args) {
-			argc += args->size();
-		}
-		if (argc > kStaticArgvMaxSize) {
-			argv = new const_char_ptr[argc];
-			arglens = new size_t[argc];
+		const_char_ptr* argv;
+		size_t* arglens;
+		int plus;
+		int argc;
+		if (!alloc_argv(key, args, 1, argv, arglens, argc, plus)) {
+			return 0;
 		}
 
 		argv[0] = cmd.c_str();
@@ -356,22 +346,68 @@ private:
 			set_errmsg(m_context->errstr, " (", m_context->err, ')');
 			free_context();
 		}
-
-		if (argc > kStaticArgvMaxSize) {
-			delete[] argv;
-			delete[] arglens;
-		}
+		free_argv(argv, arglens, argc);
 
 		return reply;
 	}
 
-	// TODO
-	redisReply* exec_redis_command(const std::string& full_cmd);
+	template<typename STR_PAIR_CONTAINER>
+	redisReply* execm(const std::string& cmd, const std::string& key,
+						STR_PAIR_CONTAINER& args, bool packValue = false)
+	{
+		using FirstType = typename std::decay<decltype(args.begin()->first)>::type;
+		using SecondType = typename std::decay<decltype(args.begin()->second)>::type;
+		static_assert(std::is_same<FirstType, std::string>::value,
+						"Key type of the container must be std::string!");
+		static_assert(std::is_same<SecondType, std::string>::value,
+						"Value type of the container must be std::string!");
+
+		if (!has_context() && !alloc_context()) {
+			return 0;
+		}
+
+		const_char_ptr* argv;
+		size_t* arglens;
+		int plus;
+		int argc;
+		if (!alloc_argv(&key, &args, (packValue ? 2 : 1), argv, arglens, argc, plus)) {
+			return 0;
+		}
+
+		argv[0] = cmd.c_str();
+		arglens[0] = cmd.size();
+		argv[1] = key.c_str();
+		arglens[1] = key.size();
+		int i = 0;
+		if (packValue) {
+			for (typename STR_PAIR_CONTAINER::const_iterator it = args.begin();
+					it != args.end(); ++it) {
+				argv[i + 2] = it->first.c_str();
+				arglens[i + 2] = it->first.size();
+				argv[i + 3] = it->second.c_str();
+				arglens[i + 3] = it->second.size();
+				i += 2;
+			}
+		} else {
+			for (typename STR_PAIR_CONTAINER::const_iterator it = args.begin();
+					it != args.end(); ++it) {
+				argv[i + 2] = it->first.c_str();
+				arglens[i + 2] = it->first.size();
+				++i;
+			}
+		}
+
+		redisReply* reply = reinterpret_cast<redisReply*>(redisCommandArgv(m_context, argc, argv, arglens));
+		if (!reply) {
+			set_errmsg(m_context->errstr, " (", m_context->err, ')');
+			free_context();
+		}
+		free_argv(argv, arglens, argc);
+
+		return reply;
+	}
 
 	void arr_reply_to_vector(redisReply* const replies[], size_t reply_num, std::vector<std::string>& result);
-
-private:
-	typedef const char* const_char_ptr;
 
 // helpers
 private:
@@ -395,6 +431,43 @@ private:
 	{
 	}
 
+	template<typename C>
+	bool alloc_argv(const std::string* key, const C* args, typename C::size_type argsMul,
+					const_char_ptr*& argv, size_t*& arglens, int& argc, int& plus)
+	{
+		typename C::size_type maxAllowArgSize = kVecArgMaxSize / argsMul;
+		if (args && (!args->size() || args->size() > maxAllowArgSize)) {
+			set_errmsg("Size of args is invalid (", args->size(), ')');
+			return false;
+		}
+
+		argv = m_tmpArgv;
+		arglens = m_tmpArgLens;
+		argc = 1;
+		plus = 1;
+		if (key) {
+			++argc;
+			++plus;
+		}
+		if (args) {
+			argc += (args->size() * argsMul);
+		}
+		if (argc > kStaticArgvMaxSize) {
+			argv = new const_char_ptr[argc];
+			arglens = new size_t[argc];
+		}
+
+		return true;
+	}
+
+	void free_argv(const_char_ptr* argv, size_t* arglens, int argc)
+	{
+		if (argc > kStaticArgvMaxSize) {
+			delete [] argv;
+			delete [] arglens;
+		}
+	}
+
 private:
 	std::string		m_ip_port;
 	std::string		m_ip;
@@ -403,6 +476,9 @@ private:
 
 	std::ostringstream	m_oss;
 	std::string			m_errmsg;
+
+	const_char_ptr	m_tmpArgv[kStaticArgvMaxSize];
+	size_t			m_tmpArgLens[kStaticArgvMaxSize];
 };
 
 }
