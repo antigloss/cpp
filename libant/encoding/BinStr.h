@@ -8,8 +8,8 @@
  *============================================================
  */
 
-#ifndef LIBCOMMON_HEX_STR_H_
-#define LIBCOMMON_HEX_STR_H_
+#ifndef LIBANT_HEX_STR_H_
+#define LIBANT_HEX_STR_H_
 
 #include <cctype>
 #include <cstdint>
@@ -125,4 +125,4 @@ inline void HexStrToBytes(const void* srcstring, size_t srclen, void* desthex)
 	}
 }
 
-#endif // end of LIBCOMMON_HEX_STR_H_
+#endif // end of LIBANT_HEX_STR_H_
