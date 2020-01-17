@@ -1,19 +1,18 @@
+﻿#include <csignal>
+#include <cerrno>
+
 #include "ThreadUtils.h"
 
-void ThreadBlockAllSignals()
+int ThreadBlockAllSignals()
 {
 #ifndef _WIN32
 	sigset_t mask;
 	if (sigfillset(&mask) != 0) {
-		int err = errno;
-		LOG(WARNING) << "sigfillset failed! err=" << strerror(err);
-		return;
+		return errno;
 	}
 
-	int err = pthread_sigmask(SIG_BLOCK, &mask, nullptr);
-	if (err != 0) {
-		LOG(WARNING) << "pthread_sigmask failed! err=" << strerror(err);
-		return;
-	}
+	return pthread_sigmask(SIG_BLOCK, &mask, nullptr);
+#else
+	return 0;
 #endif // !_WIN32
 }

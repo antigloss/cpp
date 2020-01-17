@@ -1,4 +1,4 @@
-#ifndef LIBANT_THREADPOOL_H_
+﻿#ifndef LIBANT_THREADPOOL_H_
 #define LIBANT_THREADPOOL_H_
 
 #include <cassert>

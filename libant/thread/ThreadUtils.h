@@ -1,7 +1,7 @@
-#ifndef LIBANT_THREADUTILS_H_
+﻿#ifndef LIBANT_THREADUTILS_H_
 #define LIBANT_THREADUTILS_H_
 
 // 线程屏蔽所有信号
-void ThreadBlockAllSignals();
+int ThreadBlockAllSignals();
 
 #endif // LIBANT_THREADUTILS_H_
