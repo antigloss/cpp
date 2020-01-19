@@ -3,6 +3,8 @@
 
 #include "ThreadUtils.h"
 
+namespace ant {
+
 int ThreadBlockAllSignals()
 {
 #ifndef _WIN32
@@ -15,4 +17,6 @@ int ThreadBlockAllSignals()
 #else
 	return 0;
 #endif // !_WIN32
+}
+
 }
