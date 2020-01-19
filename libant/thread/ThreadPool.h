@@ -87,7 +87,16 @@ public:
 			outQueue_.pop_front();
 			return std::make_pair(output, true);
 		}
-		return std::make_pair(JobOutput(), true);
+		return std::make_pair(JobOutput(), false);
+	}
+
+	// 获取处理中和排队等待处理的任务总数
+	size_t GetPendingTaskCount()
+	{
+		dataQueueMtx_.lock();
+		size_t n = dataQueue_.size() + allWorkers_.size() - freeWorkerNum_;
+		dataQueueMtx_.unlock();
+		return n;
 	}
 
 	// 关闭线程池。该函数会等待所有任务执行完毕后，再退出。
