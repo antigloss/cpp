@@ -1,6 +1,7 @@
 ﻿#ifndef LIBANT_KAFKAPRODUCER_H_
 #define LIBANT_KAFKAPRODUCER_H_
 
+#include <mutex>
 #include "Common.h"
 
 /**
@@ -42,6 +43,13 @@ public:
 	}
 
 	/**
+	* @brief 同步往kafka broker发送一条消息
+	* @param payload 发送给kafka broker的消息内容
+	* @return 表示成功或者失败的错误码
+	*/
+	KafkaErrCode SyncProduce(const std::string& payload);
+
+	/**
 	 * @brief 触发已完成事件的回调函数。程序必须定期调用该函数，以触发事件回调函数。
 	 * @param timeoutMS 函数等待事件的时间（毫秒），0表示不等待，-1表示永久等待
 	 *
@@ -58,6 +66,52 @@ public:
 private:
 	RdKafka::Producer*	producer_;
 	RdKafka::Topic*		topic_;
+};
+
+/**
+* @brief KafkaProducer对象池，线程安全。
+*/
+class KafkaProducerPool {
+public:
+	/**
+	* @brief 构造Oracle操作对象
+	* @throw occi::SQLException
+	* @note 多线程环境下，使用者必须保证drcb和evcb是线程安全的
+	*/
+	KafkaProducerPool(size_t maxPooledProducers, const std::string& brokers, const std::string& topic, RdKafka::DeliveryReportCb* drcb = nullptr, RdKafka::EventCb* evcb = nullptr)
+		: maxPooledProducers_(maxPooledProducers), brokers_(brokers), topic_(topic), drcb_(drcb), evcb_(evcb)
+	{
+	}
+
+	~KafkaProducerPool()
+	{
+		for (auto cli : pooledProducers_) {
+			delete cli;
+		}
+	}
+
+	KafkaProducerPool(const KafkaProducerPool&) = delete;
+	const KafkaProducerPool& operator=(const KafkaProducerPool&) = delete;
+
+	/**
+	* @brief 获取KafkaProducer对象，使用完毕后，要调用Put接口返还。
+	*/
+	KafkaProducer* Get();
+
+	/**
+	* @brief 返还通过Get接口获取的KafkaProducer对象。
+	*/
+	void Put(KafkaProducer* producer);
+
+private:
+	const size_t						maxPooledProducers_;
+	const std::string					brokers_;
+	const std::string					topic_;
+	RdKafka::DeliveryReportCb* const	drcb_;
+	RdKafka::EventCb* const				evcb_;
+
+	std::mutex					lock_;
+	std::list<KafkaProducer*>	pooledProducers_;
 };
 
 #endif // LIBANT_KAFKAPRODUCER_H_

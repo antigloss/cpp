@@ -20,7 +20,7 @@ KafkaConsumer::KafkaConsumer(const std::string& brokers, const std::string& grou
 	setConfig(conf, "metadata.broker.list", brokers);
 	setConfig(conf, "group.id", groupID);
 	setConfig(conf, "auto.offset.reset", "smallest");
-	setConfig(conf, "auto.commit.enable", "false");
+	setConfig(conf, "enable.auto.commit", "false");
 	setConfig(conf, "enable.auto.offset.store", "false");
 	if (evcb) {
 		setConfig(conf, "event_cb", evcb);

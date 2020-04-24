@@ -1,5 +1,5 @@
-﻿#ifndef LIBANT_DB_ORACLE_CONNECTION_CONFIG_H_
-#define LIBANT_DB_ORACLE_CONNECTION_CONFIG_H_
+﻿#ifndef LIBANT_ORACLE_CONNECTION_CONFIG_H_
+#define LIBANT_ORACLE_CONNECTION_CONFIG_H_
 
 #include <string>
 
@@ -30,6 +30,11 @@ public:
 		return lhs.toString() < rhs.toString();
 	}
 
+	friend bool operator==(const OracleConnectionConfig& lhs, const OracleConnectionConfig& rhs)
+	{
+		return (lhs.Host == rhs.Host) && (lhs.User == rhs.User) && (lhs.Password == rhs.Password);
+	}
+
 public:
 	std::string	Host;
 	std::string	User;
@@ -47,4 +52,4 @@ private:
 	mutable std::string tmpStr_;
 };
 
-#endif // LIBANT_DB_ORACLE_CONNECTION_CONFIG_H_
+#endif // LIBANT_ORACLE_CONNECTION_CONFIG_H_

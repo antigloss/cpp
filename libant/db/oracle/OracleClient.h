@@ -5,12 +5,13 @@
  *
  **************************************************************/
 
-#ifndef LIBANT_DB_ORACLE_CLIENT_H_
-#define LIBANT_DB_ORACLE_CLIENT_H_
+#ifndef LIBANT_ORACLE_CLIENT_H_
+#define LIBANT_ORACLE_CLIENT_H_
 
 #include <string>
 #include <set>
 #include <unordered_map>
+#include <mutex>
 #include <occi.h>
 
 #include "OracleConnectionConfig.h"
@@ -64,6 +65,28 @@ public:
 	 */
 	OracleClient(const std::string& host, const std::string& user, const std::string& passwd);
 	~OracleClient();
+
+	/**
+	 * @brief 获取指定数据表的列信息
+	 * @return 成功返回true，失败返回false
+	 */
+	bool GetColumnsMetaData(const std::string& tableName, std::vector<occi::MetaData>& meta)
+	{
+		auto err = getColumnsMetaData(tableName, meta);
+		if (err == kSuccess) {
+			return true;
+		}
+		if (err == kErrorNeedNotRetry) {
+			return false;
+		}
+
+		// 获取MetaData失败，重试一次。如果是丢失连接，则尝试重连。
+		if (err == kConnectionLost || err == kNotConnected) {
+			closeConnection();
+		}
+
+		return (getColumnsMetaData(tableName, meta) == kSuccess);
+	}
 
 	/**
 	 * @brief Runs a SQL statement that returns a ResultSet. Should not be called for a statement which is not a query, has streamed parameters.
@@ -197,6 +220,7 @@ public:
 
 private:
 	bool createStatement();
+	ErrorCode getColumnsMetaData(const std::string& tableName, std::vector<occi::MetaData>& meta);
 	ErrorCode executeQuery(const std::string& sql, occi::ResultSet*& rs);
 	ErrorCode executeUpdate(const std::string& sql, const std::set<ErrorCode>* ignoreErrs, unsigned int* affectedCnt);
 	ErrorCode batchUpdate(const std::vector<std::string>& sqls, const std::set<ErrorCode>* ignoreErrs);
@@ -218,6 +242,50 @@ private:
 	bool				autoCommit_;
 
 	std::string			errMsg_;
+};
+
+/**
+ * @brief OracleClient对象池，线程安全。
+ */
+class OracleClientPool {
+public:
+	/**
+	 * @brief 构造Oracle操作对象
+	 * @throw occi::SQLException
+	 */
+	OracleClientPool(size_t maxPooledClis, const std::string& host, const std::string& user, const std::string& passwd)
+		: maxPooledClis_(maxPooledClis), host_(host), user_(user), passwd_(passwd)
+	{
+	}
+
+	~OracleClientPool()
+	{
+		for (auto cli : pooledClis_) {
+			delete cli;
+		}
+	}
+
+	OracleClientPool(const OracleClientPool&) = delete;
+	const OracleClientPool& operator=(const OracleClientPool&) = delete;
+
+	/**
+	 * @brief 获取OracleClient对象，使用完毕后，要调用Put接口返还。
+	 */
+	OracleClient* Get();
+
+	/**
+	 * @brief 返还通过Get接口获取的OracleClient对象。
+	 */
+	void Put(OracleClient* cli);
+
+private:
+	const size_t		maxPooledClis_;
+	const std::string	host_;
+	const std::string	user_;
+	const std::string	passwd_;
+
+	std::mutex					lock_;
+	std::list<OracleClient*>	pooledClis_;
 };
 
 /**
@@ -285,4 +353,4 @@ private:
 	std::string	tmpKey_;
 };
 
-#endif // !LIBANT_DB_ORACLE_CLIENT_H_
+#endif // !LIBANT_ORACLE_CLIENT_H_

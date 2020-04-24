@@ -82,6 +82,35 @@ bool OracleClient::createStatement()
 	return false;
 }
 
+OracleClient::ErrorCode OracleClient::getColumnsMetaData(const std::string& tableName, std::vector<occi::MetaData>& meta)
+{
+	if (!createStatement()) {
+		return kErrorNeedNotRetry; // 建立连接失败，没必要重试
+	}
+
+	auto err = kUnknownError;
+	try {
+		auto tblMeta = conn_->getMetaData(tableName, occi::MetaData::PTYPE_TABLE);
+		meta = tblMeta.getVector(occi::MetaData::ATTR_LIST_COLUMNS);
+		return kSuccess;
+	}
+	catch (const occi::SQLException& e) {
+		errMsg_.clear();
+		errMsg_.append(e.what());
+		err = static_cast<ErrorCode>(e.getErrorCode());
+	}
+	catch (const std::exception& e) {
+		errMsg_.clear();
+		errMsg_.append(e.what());
+	}
+	catch (...) {
+		errMsg_.clear();
+		errMsg_.append("Unknown error!");
+	}
+
+	return err;
+}
+
 OracleClient::ErrorCode OracleClient::executeQuery(const std::string& sql, occi::ResultSet*& rs)
 {
 	if (!createStatement()) {
@@ -284,4 +313,39 @@ void OracleClient::closeConnection()
 	// 如果terminateXXX抛出异常，大不了就是泄漏些内存
 	stmt_ = 0;
 	conn_ = 0;
+}
+
+//=====================================================================================================================
+
+OracleClient* OracleClientPool::Get()
+{
+	lock_.lock();
+	if (!pooledClis_.empty()) {
+		auto cli = pooledClis_.front();
+		pooledClis_.pop_front();
+		lock_.unlock();
+		return cli;
+	}
+	lock_.unlock();
+
+	try {
+		return new OracleClient(host_, user_, passwd_);
+	}
+	catch (...) {
+	}
+
+	return nullptr;
+}
+
+void OracleClientPool::Put(OracleClient* cli)
+{
+	lock_.lock();
+	if (pooledClis_.size() < maxPooledClis_) {
+		pooledClis_.emplace_back(cli);
+		lock_.unlock();
+	}
+	else {
+		lock_.unlock();
+		delete cli;
+	}
 }
